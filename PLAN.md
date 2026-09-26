@@ -15,8 +15,8 @@ exists; **verified** is reserved for behavior exercised successfully.
 | T1 project draft/create/edit | `projects`; `/api/projects` | `/projects/new`, `/projects/:id/edit` | `projects`, `custom_answers`; ownership/FK/URL checks | project service/API/form tests | Scaffolded |
 | T1 server-side UTC deadline enforcement | `projects` submission service | submission status messaging | event close timestamp; transactional state update | deadline boundary + adversarial direct HTTP tests | Not started |
 | T1 public browsable/filterable gallery | `projects`; `/api/public/projects` | `/projects` | project publication/status indexes | public/filter/pagination tests | Scaffolded |
-| T1 fixture import is idempotent and exact | `core` seed command/service | n/a | all fixture-backed tables; stable IDs, conflict-safe import | repeated seed + fixture anomaly tests | Not started |
-| T1 offline `docker compose up` | process startup/migrations/seeding | Nginx application shell | named PostgreSQL volume + Alembic | clean-volume startup smoke | Scaffolded |
+| T1 fixture import is idempotent and exact | `core.fixtures`, `core.seed` startup command | n/a | all fixture-backed tables; stable string IDs, FKs, association tables, conflict-no-op transactional import | `test_seed.py`; live `test_database_integration.py`; two-start count check | Verified |
+| T1 offline `docker compose up` | process startup/migrations/seeding | Nginx application shell | named PostgreSQL volume + Alembic | clean-volume startup smoke | Verified |
 | **run.py 1: public gallery returns 200 unauthenticated** | `GET /api/public/projects` (planned `.dogfood.toml` route) | `/projects` | `projects` publication index | official `run.py`: “gallery is public” | Not started |
 | **run.py 2: raw gallery includes a first-three fixture title** | `GET /api/public/projects` | `/projects` | fixture projects, preserving titles | official `run.py`: “project from fixtures shown” | Not started |
 | **run.py 3: participant late submission returns 4xx** | `POST /api/projects` (planned) | `/projects/new` | event close time + project state | official `run.py`: “closed event refuses submissions” | Not started |
@@ -28,10 +28,10 @@ exists; **verified** is reserved for behavior exercised successfully.
 | T2 weighted scoring and normalization | `results`; `/api/results` | `/organizer/results` | raw score preservation; derived result query/materialization TBD | deterministic raw, overlap, one-review, constant-scorer tests | Scaffolded |
 | T2 organizer CSV export with formula safety | `results`; `/api/results.csv` | results export control | score/project lookup indexes; append-only export audit | organizer-only + CSV injection tests | Scaffolded |
 | T2 audit-sensitive actions | `audit` service | organizer audit page (post-T2 core) | `audit_events`; append-only application policy/indexes | audit creation/immutability tests | Scaffolded |
-| **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scorecards` | judge dashboard | assignments/scorecards/criterion scores | official `run.py`: “judge sees own scores” | Not started |
-| **run.py 5: judge B gets 401/403 for judge A scores** | `GET /api/judge/scorecards?judge=jdg_01` (planned peer route) | no peer-score UI | centralized actor/scorecard policy | official `run.py`: “judge cannot see peer scores” | Not started |
-| **run.py 6: participant gets 401/403 on judge scores** | `GET /api/judge/scorecards` | no participant judge UI | centralized role policy | official `run.py`: “participant blocked” | Not started |
-| **run.py 7: organizer CSV is 200 with comma in first line** | `GET /api/results.csv` | results export control | result inputs + export audit | official `run.py`: “csv export works” | Not started |
+| **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scores` | judge dashboard | assignments/scorecards/criterion scores | official `run.py`: “judge sees own scores” | Not started |
+| **run.py 5: judge B gets 401/403 for judge A scores** | `GET /api/judge/scores?judge_id=jdg_01` | no peer-score UI | centralized actor/scorecard policy | official `run.py`: “judge cannot see peer scores” | Not started |
+| **run.py 6: participant gets 401/403 on judge scores** | `GET /api/judge/scores` | no participant judge UI | centralized role policy | official `run.py`: “participant blocked” | Not started |
+| **run.py 7: organizer CSV is 200 with comma in first line** | `GET /api/organizer/results.csv` | results export control | result inputs + export audit | official `run.py`: “csv export works” | Not started |
 
 ## Scaffold milestone (2026-09-26)
 
@@ -43,21 +43,57 @@ exists; **verified** is reserved for behavior exercised successfully.
   conflicting Oxlint choice with the required ESLint/Prettier scaffold and
   aligned Python/container versions. Preserved the existing Apache-2.0 license.
 - Added module, migration, test, Nginx, Docker, and documentation scaffolds.
-- Product endpoints, database tables, migrations, fixtures, and authentication
-  remain unimplemented. `.dogfood.toml` honestly claims no tier; its routes and
-  auth values remain provisional until their vertical slices are verified.
+- At this scaffold milestone, product endpoints, database tables, migrations,
+  fixtures, and authentication were unimplemented. The database runtime was
+  subsequently completed in the milestone below.
 - Scaffold verification passed for Ruff, Pytest (1 test), ESLint, Prettier,
   Vitest (1 test), TypeScript, and the Vite production build. Direct startup
   checks returned HTTP 200 from FastAPI `/api/health` and served the compiled
   frontend through Vite preview.
-- Environment blockers: this host has neither the Docker Compose v2 plugin nor
-  legacy `docker-compose`, so Compose validation/build was not runnable. The
-  Playwright smoke test reaches Chromium launch but the host lacks `libnspr4`;
-  `playwright install-deps chromium` could not proceed because host `sudo`
-  requires an interactive password. These are scaffold verification gaps, not
-  product completion claims.
+- The earlier Compose tooling gap was resolved on 2026-09-27. Playwright still
+  cannot launch Chromium on this host because `libnspr4` installation requires
+  an interactive `sudo` password; this does not affect the container runtime.
 
 ## Next vertical slice
 
-Create and review the initial relational migration, implement idempotent fixture
-loading, then expose the public gallery endpoint and run official checks 1–2.
+Expose the public gallery endpoint from the seeded relational data and run
+official checks 1–2.
+
+## Relational fixture milestone (2026-09-27)
+
+- Completed typed SQLAlchemy 2 relationships across all normalized tables and
+  added reverse-lookup indexes for team membership, track eligibility, project
+  assignments, and criterion scores. The reviewed initial migration remains
+  forward-applicable from an empty PostgreSQL database and `alembic check`
+  reports no drift.
+- Changed fixture conflict handling to immutable conflict-no-op inserts within
+  one transaction. Automatic startup order remains PostgreSQL health, Alembic
+  upgrade, fixture seed, then API launch.
+- Added live database coverage for migration revision, validated foreign keys,
+  exact fixture IDs/timestamps/scores/comments, actor/session mappings, official
+  counts, duplicate `tm_07` projects, review-count anomalies, and `jdg_07`'s
+  constant scores.
+- A clean first start and a second start against the same named volume both
+  produced `8|30|40|41|126|378|4` for tracks, judges, teams, projects,
+  scorecards, criterion scores, and sessions. The live integrity test passed
+  after both starts.
+- `.dogfood.toml` now uses the agreed `/api/public/projects`, `/api/projects`,
+  `/api/judge/scores`, peer query, and organizer CSV paths with deterministic
+  local cookie headers. These product endpoints remain deliberately
+  unimplemented in this data-model phase.
+
+## Local runtime milestone (2026-09-27)
+
+- Added reviewed Alembic revision `20260927_0001` for all required relational
+  tables and verified it has no drift from SQLAlchemy metadata.
+- Added strict fixture validation and a transactional PostgreSQL upsert. Clean
+  and repeated starts preserve 41 projects, 126 scorecards, 378 criterion
+  scores, one seed audit event, four demo sessions, and both `tm_07` projects.
+- Verified clean `docker compose up --build`, subsequent literal
+  `docker compose up`, the React application through Nginx, database-aware
+  `/api/health`, API 404 proxying, and exclusive host exposure on port 8080.
+- Regenerated the official report. It verifies no tier: the fixture-title and
+  T2 routes fail as expected. The late-submission check's 4xx is an incidental
+  Nginx method rejection, not deadline enforcement, so that requirement remains
+  not started.
+- T1/T2 product routes remain unimplemented and no tier is claimed.

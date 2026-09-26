@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://jurystack:jurystack@localhost:5432/jurystack"
     )
+    fixtures_path: Path = Path("/app/fixtures.json")
 
 
 @lru_cache

@@ -1,9 +1,9 @@
 # JuryStack
 
 JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
-2026. The repository is currently at the verified scaffold milestone: the
-FastAPI and React applications build independently, while product workflows and
-the official acceptance routes remain intentionally unimplemented.
+2026. Its local three-service runtime, migration path, and idempotent official
+fixture import are verified. Product workflows and official acceptance routes
+remain intentionally unimplemented.
 
 ## Architecture
 
@@ -15,7 +15,33 @@ The deployable application has three local services:
 
 No runtime cloud service, hosted account, or external API is required.
 
-## Development
+## Local runtime
+
+Copy `.env.example` to `.env` only when overriding the safe local defaults.
+Build and start the complete portal with:
+
+```bash
+docker compose up --build
+```
+
+After the images exist, the official command is sufficient:
+
+```bash
+docker compose up
+```
+
+The API container waits for PostgreSQL readiness, applies Alembic migrations,
+and transactionally upserts `fixtures.json` before starting FastAPI. Open
+`http://localhost:8080`; only Nginx publishes a host port. Readiness is exposed
+through Nginx at `http://localhost:8080/api/health`.
+
+Reset to a completely empty local database with:
+
+```bash
+docker compose down --volumes
+```
+
+## Direct development
 
 Backend:
 
@@ -33,16 +59,19 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The full stack will be started with `docker compose up --build` once fixture
-seeding and database migrations are implemented.
-
 ## Current status
 
 T1 and T2 are targets, not current claims. `.dogfood.toml` therefore claims no
 tier yet and retains provisional checker routes/auth values for later
-implementation. No `acceptance-report.txt` is generated during this
-scaffold-only phase because the checker-facing product endpoints do not exist
-yet. See `PLAN.md` for requirement-level status.
+implementation. The current generated `acceptance-report.txt` verifies no tier:
+the application shell is public, but the fixture gallery and T2 product routes
+do not exist yet. Its apparent late-submission pass is an incidental Nginx 405,
+not implemented deadline enforcement. See `PLAN.md` for requirement-level
+status.
+
+Runtime configuration is local-only and documented in `.env.example`. The
+default PostgreSQL credentials are intentionally development credentials and
+must be changed for any non-local deployment.
 
 ## License
 

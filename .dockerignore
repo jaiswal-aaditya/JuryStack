@@ -1,0 +1,15 @@
+.git
+.agents
+.codex
+.env
+.pnpm-store
+**/.pytest_cache
+**/.ruff_cache
+**/__pycache__
+**/*.pyc
+**/.venv
+**/dist
+**/node_modules
+**/playwright-report
+**/test-results
+acceptance-report.txt

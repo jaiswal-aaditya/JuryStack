@@ -8,11 +8,13 @@ WORKDIR /app
 
 COPY --from=ghcr.io/astral-sh/uv:0.6.5 /uv /uvx /bin/
 COPY src/backend/pyproject.toml src/backend/uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY src/backend/alembic.ini ./alembic.ini
 COPY src/backend/alembic ./alembic
 COPY src/backend/app ./app
+COPY src/backend/entrypoint.sh ./entrypoint.sh
+COPY fixtures.json ./fixtures.json
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "/app/entrypoint.sh"]

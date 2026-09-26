@@ -1,5 +1,6 @@
 services:
   web:
+    image: jurystack-web:local
     build:
       context: .
       dockerfile: src/frontend/Dockerfile
@@ -8,13 +9,21 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
 
   api:
+    image: jurystack-api:local
     build:
       context: .
       dockerfile: src/backend/Dockerfile
     environment:
-      JURYSTACK_DATABASE_URL: postgresql+asyncpg://jurystack:jurystack@db:5432/jurystack
+      JURYSTACK_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jurystack}:${POSTGRES_PASSWORD:-jurystack}@db:5432/${POSTGRES_DB:-jurystack}
+      JURYSTACK_FIXTURES_PATH: /app/fixtures.json
     depends_on:
       db:
         condition: service_healthy
@@ -23,20 +32,22 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+      start_period: 10s
 
   db:
     image: postgres:17.4-alpine3.21
     environment:
-      POSTGRES_DB: jurystack
-      POSTGRES_USER: jurystack
-      POSTGRES_PASSWORD: jurystack
+      POSTGRES_DB: ${POSTGRES_DB:-jurystack}
+      POSTGRES_USER: ${POSTGRES_USER:-jurystack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jurystack}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jurystack -d jurystack"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 12
+      start_period: 5s
 
 volumes:
   postgres_data:

@@ -15,8 +15,8 @@ judge_b     = "Cookie: session=jdg_b_44de"
 participant = "Cookie: session=prt_2e88"
 
 [routes]
-gallery      = "/projects"
-submit       = "/projects/new"
+gallery      = "/api/public/projects"
+submit       = "/api/projects"
 judge_scores = "/api/judge/scores"
-peer_scores  = "/api/judge/scores?judge=judge_a"
-csv_export   = "/api/export.csv"
+peer_scores  = "/api/judge/scores?judge_id=jdg_01"
+csv_export   = "/api/organizer/results.csv"
