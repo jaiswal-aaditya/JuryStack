@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+node_modules/
+.pnpm-store/
+dist/
+playwright-report/
+test-results/

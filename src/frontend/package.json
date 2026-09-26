@@ -1,31 +1,51 @@
 {
-  "name": "frontend",
+  "name": "jurystack-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --config .prettierrc.json --ignore-path .prettierignore --check . ../../tests/frontend ../../tests/e2e",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.90.21",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tailwindcss": "^4.3.3"
+    "react-hook-form": "^7.71.2",
+    "react-router": "^7.13.2",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.58.2",
     "@rolldown/plugin-babel": "^0.2.3",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "oxlint": "^1.81.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "jsdom": "^29.0.1",
+    "prettier": "^3.8.1",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "typescript-eslint": "^8.57.1",
+    "vite": "^8.3.0",
+    "vitest": "^4.1.0"
   }
 }
