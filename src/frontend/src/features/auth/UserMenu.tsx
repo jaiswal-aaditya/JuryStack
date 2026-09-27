@@ -20,7 +20,9 @@ export function UserMenu() {
         <Avatar name={user.display_name} role={user.role} size="sm" />
         <span className="user-menu-name">{user.display_name}</span>
         <span aria-hidden="true" className="chevron">
-          ⌄
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="m4 6 4 4 4-4" />
+          </svg>
         </span>
       </summary>
       <div className="user-popover">

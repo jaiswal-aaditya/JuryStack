@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { auditEvents, judges, organizerProgress } from './api'
 import { events, gallery } from '../tier1/api'
@@ -58,6 +58,25 @@ export function OrganizerOperationsPage() {
   const projects = (projectQuery.data?.items ?? []).filter(
     (project) => project.event_id === selectedEventId,
   )
+  const trackProgress = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { name: string; total: number; submitted: number; draft: number }
+    >()
+    for (const assignment of progressQuery.data?.assignments ?? []) {
+      const current = grouped.get(assignment.track_id) ?? {
+        name: assignment.track_name,
+        total: 0,
+        submitted: 0,
+        draft: 0,
+      }
+      current.total += 1
+      if (assignment.completion_state === 'submitted') current.submitted += 1
+      if (assignment.completion_state === 'draft') current.draft += 1
+      grouped.set(assignment.track_id, current)
+    }
+    return [...grouped.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [progressQuery.data?.assignments])
   const loading =
     eventQuery.isLoading ||
     judgeQuery.isLoading ||
@@ -194,6 +213,49 @@ export function OrganizerOperationsPage() {
           <small>Below 3 submitted reviews</small>
         </div>
       </div>
+
+      <section className="track-progress-section" aria-labelledby="track-progress-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">At a glance</p>
+            <h2 id="track-progress-title">Review progress by track</h2>
+          </div>
+          <span>Based on current filters</span>
+        </div>
+        {trackProgress.length === 0 ? (
+          <EmptyState>No assignments match these filters yet.</EmptyState>
+        ) : (
+          <div className="track-progress-grid">
+            {trackProgress.map((track) => {
+              const percent = track.total
+                ? Math.round((track.submitted / track.total) * 100)
+                : 0
+              return (
+                <article className="track-progress-card panel" key={track.name}>
+                  <div className="track-progress-heading">
+                    <h3>{track.name}</h3>
+                    <strong>{percent}%</strong>
+                  </div>
+                  <div
+                    className="progress-track"
+                    role="progressbar"
+                    aria-label={`${track.name} review completion`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={percent}
+                  >
+                    <span style={{ width: `${percent}%` }} />
+                  </div>
+                  <div className="track-progress-caption">
+                    <span>{track.submitted} of {track.total} submitted</span>
+                    <span>{track.draft} in progress</span>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="panel overflow-x-auto">
         <h2>Assignment progress</h2>
