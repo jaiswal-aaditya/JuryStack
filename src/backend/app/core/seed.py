@@ -30,6 +30,11 @@ from app.core.models import (
 
 LOGGER = logging.getLogger(__name__)
 
+DEMO_PASSWORD_HASH = (
+    "$argon2id$v=19$m=65536,t=3,p=4$TOqQQT8n45N+FhxOXUh5Sg$"
+    "/zhEgVBSnMNGyFJuhEj6/0prrYP/KdnGdF+0+ogKaG8"
+)
+
 DEMO_TOKENS = {
     "organizer": "org_7f2a",
     "judge_a": "jdg_a_91bc",
@@ -66,7 +71,7 @@ def build_seed_rows(fixture: FixtureData) -> dict[str, list[dict[str, Any]]]:
             "email": "organizer@jurystack.local",
             "display_name": "Demo Organizer",
             "role": "organizer",
-            "password_hash": None,
+            "password_hash": DEMO_PASSWORD_HASH,
         }
     ]
     users.extend(
@@ -75,7 +80,7 @@ def build_seed_rows(fixture: FixtureData) -> dict[str, list[dict[str, Any]]]:
             "email": judge.email.casefold(),
             "display_name": judge.name,
             "role": "judge",
-            "password_hash": None,
+            "password_hash": DEMO_PASSWORD_HASH,
         }
         for judge in fixture.judges
     )
@@ -85,7 +90,7 @@ def build_seed_rows(fixture: FixtureData) -> dict[str, list[dict[str, Any]]]:
             "email": email,
             "display_name": email.partition("@")[0],
             "role": "participant",
-            "password_hash": None,
+            "password_hash": DEMO_PASSWORD_HASH,
         }
         for email in member_emails
     )

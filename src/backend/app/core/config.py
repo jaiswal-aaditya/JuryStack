@@ -18,6 +18,9 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://jurystack:jurystack@localhost:5432/jurystack"
     )
     fixtures_path: Path = Path("/app/fixtures.json")
+    session_cookie_name: str = "session"
+    session_cookie_secure: bool = False
+    session_ttl_seconds: int = 60 * 60 * 12
 
 
 @lru_cache

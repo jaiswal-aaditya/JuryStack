@@ -23,6 +23,12 @@ class Base(DeclarativeBase):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('participant', 'judge', 'organizer', 'admin')",
+            name="ck_users_role",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)

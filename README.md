@@ -3,7 +3,8 @@
 JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
 2026. Its local three-service runtime, migration path, and idempotent official
 fixture import are verified. Product workflows and official acceptance routes
-remain intentionally unimplemented.
+remain intentionally unimplemented. Local authentication, opaque sessions,
+and backend authorization-policy foundations are also verified.
 
 ## Architecture
 
@@ -34,6 +35,11 @@ The API container waits for PostgreSQL readiness, applies Alembic migrations,
 and transactionally upserts `fixtures.json` before starting FastAPI. Open
 `http://localhost:8080`; only Nginx publishes a host port. Readiness is exposed
 through Nginx at `http://localhost:8080/api/health`.
+
+The local login page is `http://localhost:8080/login`. Seeded fixture users use
+the intentionally local-only demo password `jurystack-local-demo`; the checker
+continues to use the deterministic Cookie headers printed during API startup.
+Do not reuse these credentials outside local development.
 
 Reset to a completely empty local database with:
 

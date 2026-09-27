@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router'
 
+import { AuthMenu } from './features/auth/AuthMenu'
 import './App.css'
 
 export function App() {
@@ -13,7 +14,7 @@ export function App() {
           <Link className="text-lg font-semibold" to="/">
             JuryStack
           </Link>
-          <span className="text-sm text-slate-400">Scaffold milestone</span>
+          <AuthMenu />
         </nav>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-16">

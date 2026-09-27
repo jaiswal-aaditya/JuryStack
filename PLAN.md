@@ -8,7 +8,7 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 | Tier / requirement | Backend module / endpoint | Frontend page | PostgreSQL migration / constraint | Test | Status |
 |---|---|---|---|---|---|
-| T1 local login, logout, current actor, opaque sessions | `auth`; `/api/auth/login`, `/logout`, `/me` | `/login`, account menu | `users`, `sessions`; unique token hash and expiry index | `tests/backend/auth/`; frontend auth tests | Scaffolded |
+| T1 local login, logout, current actor, opaque sessions | `auth`; `/api/auth/login`, `/logout`, `/me`; reusable role/owner/event/track/assignment policies | `/login`, account menu | `users`, `sessions`; role check, unique token hash and expiry index | `test_auth.py`; `auth.test.tsx`; live rotation/logout checks | Verified |
 | T1 organizer creates/configures event | `events`; `/api/events` | `/organizer/events/*` | `events`; unique slug, UTC date checks | event service/API tests | Scaffolded |
 | T1 tracks, prizes, custom questions | `events`; nested event resources | event setup pages | `tracks`, `prizes`, `custom_questions`; event FKs/order constraints | event configuration tests | Scaffolded |
 | T1 form and manage teams/invites | `teams`; `/api/teams`, `/invites` | `/teams/*` | `teams`, `team_members`, `team_invites`; membership/invite uniqueness | team ownership and invite tests | Scaffolded |
@@ -58,6 +58,29 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 Expose the public gallery endpoint from the seeded relational data and run
 official checks 1–2.
+
+## Authentication foundation milestone (2026-09-27)
+
+- Added local email/password login with Argon2id, random opaque HttpOnly
+  cookies, hash-only server-side session storage, login rotation, logout
+  invalidation, `/api/auth/me`, and transactional login/logout audit rows. API
+  schemas cannot accept a requested role and never serialize credential hashes
+  or tokens.
+- Added the visitor/participant/judge/organizer/admin role vocabulary, database
+  constraints for stored roles, and reusable dependencies/services for role,
+  ownership, event, track, and judge-assignment scope. Backend policy is the
+  security boundary; frontend state is display-only.
+- Preserved all four deterministic checker sessions. Live checks returned 200
+  for each; normal login rotation returned 401 for the old cookie and 200 for
+  the replacement, and logout changed that replacement to 401.
+- Added adversarial backend coverage for missing/invalid authentication, role
+  escalation input, participant/judge boundary violations, owned-resource
+  isolation, session rotation, and invalidation. Backend tests passed 14 with
+  one environment-gated PostgreSQL test; the same database integrity test had
+  already passed in-container.
+- Added a minimal React login page and account menu backed by TanStack Query,
+  React Hook Form, and Zod. Frontend lint, two Vitest tests, TypeScript, and the
+  production build pass.
 
 ## Relational fixture milestone (2026-09-27)
 
