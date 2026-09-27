@@ -19,7 +19,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine
 
-EXPECTED_REVISION = "20260927_0005"
+EXPECTED_REVISION = "20260927_0006"
 
 
 async def verify_seeded_database(database_url: str, fixture_path: Path) -> None:

@@ -25,6 +25,7 @@ function navigationFor(role?: string): NavigationItem[] {
     items.push(
       { label: 'Events', to: '/organizer/events' },
       { label: 'Judging', to: '/organizer/judging' },
+      { label: 'Operations', to: '/organizer/operations' },
     )
   }
   return items

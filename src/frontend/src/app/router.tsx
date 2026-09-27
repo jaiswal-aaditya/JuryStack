@@ -8,6 +8,7 @@ import { JudgeAssignmentsPage } from '../features/judging/JudgeAssignmentsPage'
 import { JudgeInvitationPage } from '../features/judging/JudgeInvitationPage'
 import { JudgeScorecardPage } from '../features/judging/JudgeScorecardPage'
 import { OrganizerJudgingPage } from '../features/judging/OrganizerJudgingPage'
+import { OrganizerOperationsPage } from '../features/judging/OrganizerOperationsPage'
 import { GalleryPage } from '../features/tier1/GalleryPage'
 import { OrganizerEventsPage } from '../features/tier1/OrganizerEventsPage'
 import { ParticipantPage } from '../features/tier1/ParticipantPage'
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       },
       { path: 'organizer/events', element: <OrganizerEventsPage /> },
       { path: 'organizer/judging', element: <OrganizerJudgingPage /> },
+      { path: 'organizer/operations', element: <OrganizerOperationsPage /> },
       { path: 'judge/assignments', element: <JudgeAssignmentsPage /> },
       {
         path: 'judge/projects/:projectId/score',

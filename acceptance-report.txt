@@ -9,9 +9,6 @@ T1  closed event refuses submissions .. PASS
 T2  judge sees own scores ............. PASS
 T2  judge cannot see peer scores ...... PASS
 T2  participant blocked ............... PASS
-T2  csv export works .................. FAIL
-       GET http://localhost:8080/api/organizer/results.csv
-       sent as organizer
-       got 404, wanted 200
+T2  csv export works .................. PASS
 
-claimed T1, verified T1
+claimed T1, verified T1 T2

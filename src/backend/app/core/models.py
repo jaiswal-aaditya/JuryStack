@@ -80,6 +80,9 @@ class Event(Base):
     starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     submissions_open: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     submissions_close: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    results_published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
 
     tracks: Mapped[list[Track]] = relationship(
         back_populates="event", cascade="all, delete-orphan"

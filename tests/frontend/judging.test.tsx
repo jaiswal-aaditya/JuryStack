@@ -2,13 +2,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   fireEvent,
+  cleanup,
   renderJudgeAssignments,
   renderJudgeScorecard,
+  renderOrganizerOperations,
   screen,
   waitFor,
 } from '../../src/frontend/src/test/judging-testing'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 describe('judge assignments', () => {
   it('shows loading and empty states for a judge with no assignments', async () => {
@@ -41,6 +46,138 @@ describe('judge assignments', () => {
     expect(
       await screen.findByText('You do not have permission for this action.'),
     ).toBeVisible()
+  })
+})
+
+describe('organizer judging operations', () => {
+  it('shows progress, coverage gaps, export, and filtered audit history', async () => {
+    const responses: Record<string, unknown> = {
+      '/api/events': [
+        {
+          id: 'evt_01',
+          name: 'Sample Hack',
+          tracks: [{ id: 'trk_01', name: 'Developer tools' }],
+          prizes: [],
+          custom_questions: [],
+          starts_at: null,
+          submissions_open: null,
+          submissions_close: '2026-03-01T18:00:00Z',
+          slug: 'sample',
+        },
+      ],
+      '/api/events/evt_01/judges': [
+        {
+          id: 'jdg_01',
+          email: 'ada@example.org',
+          display_name: 'Ada',
+          track_ids: ['trk_01'],
+        },
+      ],
+      '/api/public/projects': {
+        items: [
+          {
+            id: 'prj_01',
+            event_id: 'evt_01',
+            team_id: 'tm_01',
+            team_name: 'Nightshift',
+            track_id: 'trk_01',
+            track_name: 'Developer tools',
+            title: 'Quiet Hours',
+            summary: 'Summary',
+            repo_url: 'https://example.org',
+            status: 'submitted',
+            submitted_at: '2026-02-01T00:00:00Z',
+            custom_answers: [],
+          },
+        ],
+        total: 1,
+      },
+      '/api/organizer/events/evt_01/progress': {
+        summary: {
+          total_assignments: 2,
+          missing_scorecards: 1,
+          draft_scorecards: 0,
+          submitted_scorecards: 1,
+          completion_percentage: 50,
+          insufficient_project_count: 1,
+        },
+        assignments: [
+          {
+            assignment_id: 'asg_1',
+            judge_id: 'jdg_01',
+            judge_name: 'Ada',
+            project_id: 'prj_01',
+            project_title: 'Quiet Hours',
+            team_id: 'tm_01',
+            team_name: 'Nightshift',
+            track_id: 'trk_01',
+            track_name: 'Developer tools',
+            completion_state: 'submitted',
+            scorecard_id: 'scr_1',
+            rubric_version: 1,
+            submitted_at: '2026-02-02T00:00:00Z',
+            raw_weighted_score: 4.25,
+          },
+        ],
+        projects: [
+          {
+            project_id: 'prj_01',
+            project_title: 'Quiet Hours',
+            team_id: 'tm_01',
+            team_name: 'Nightshift',
+            track_id: 'trk_01',
+            track_name: 'Developer tools',
+            assigned_reviews: 2,
+            submitted_reviews: 1,
+            required_reviews: 3,
+            is_insufficient: true,
+          },
+        ],
+      },
+      '/api/organizer/audit-events': [
+        {
+          id: 'audit_1',
+          event_id: 'evt_01',
+          actor_id: 'usr_org',
+          actor_name: 'Organizer',
+          action: 'results.exported',
+          summary: 'results exported',
+          detail: { format: 'csv' },
+          occurred_at: '2026-09-27T12:00:00Z',
+        },
+      ],
+    }
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (input) => {
+        const path = String(input)
+        const value = responses[path]
+        if (value === undefined)
+          return Response.json(
+            { error: { message: `Missing mock ${path}` } },
+            { status: 500 },
+          )
+        return Response.json(value)
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    renderOrganizerOperations()
+
+    expect(await screen.findByText('Judging operations')).toBeVisible()
+    expect(screen.getByText('50% complete')).toBeVisible()
+    expect(screen.getByText(/1\/3 submitted/)).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Export results CSV' }),
+    ).toHaveAttribute('href', '/api/organizer/results.csv?event_id=evt_01')
+    expect(await screen.findByText('results exported')).toBeVisible()
+    fireEvent.change(screen.getByLabelText('Completion filter'), {
+      target: { value: 'submitted' },
+    })
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/organizer/events/evt_01/progress?completion_state=submitted',
+        expect.anything(),
+      ),
+    )
   })
 })
 

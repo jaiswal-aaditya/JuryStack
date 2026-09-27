@@ -11,8 +11,11 @@ weights, and ranges where `minimum_score >= maximum_score`.
 Every save creates the next event rubric version and marks the previous version
 inactive. It never edits historical criteria. A scorecard references its exact
 rubric version, so a later organizer change cannot silently reinterpret stored
-scores. Private scorecard editing is implemented below; weighted-score
-calculation remains deferred as a separate results concern.
+scores. Private scorecard editing is implemented below. Organizer result rows
+calculate a raw weighted average as
+`sum(score × criterion weight) / sum(scored weights)`; an incomplete draft
+reports only criteria actually present and is never treated as a submitted
+review.
 
 ## Judge invitations and assignment
 
@@ -67,11 +70,16 @@ versions exist.
 Organizers inspect raw scorecards and latest-per-assignment progress through
 separate organizer-role endpoints. These endpoints are not exposed to judges.
 
-## Deferred judging work
+## Organizer operations and remaining work
 
-The organizer progress UI, weighted raw-score output, normalization, and CSV
-results export remain separate later slices. Raw fixture scores remain
-preserved. No normalization method is implemented or claimed; its formula and
-fallbacks for constant scorers, one-review judges, incomplete criteria, and
-insufficient overlap must be documented with deterministic tests before Tier 2
-is claimed.
+The organizer operations page reports missing, draft, and submitted assignment
+counts, completion percentage, and projects below a configurable submitted
+review target. It supports track, judge, project, and completion-state filters.
+The CSV export includes stable migration IDs, relationship labels, statuses,
+review counts, rubric identity, and raw weighted scores; every cell beginning
+with a spreadsheet formula character is prefixed with an apostrophe.
+
+Raw fixture scores remain preserved. Cross-judge normalization is still not
+implemented or claimed; its formula and fallbacks for constant scorers,
+one-review judges, incomplete criteria, and insufficient overlap must be
+documented with deterministic tests before Tier 2 is claimed.

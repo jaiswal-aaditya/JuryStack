@@ -4,8 +4,9 @@ JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
 2026. Tier 1 is implemented end to end: organizers configure events,
 participants form teams and submit projects before a server-enforced UTC
 deadline, and visitors browse a searchable, filterable public gallery. Tier 2
-rubric, invitation, assignment, and private-scorecard slices are implemented,
-but Tier 2 remains unclaimed until results normalization and CSV export exist.
+rubric, invitation, assignment, private-scorecard, organizer operations, CSV
+export, and audit-history slices are implemented. Tier 2 remains unclaimed
+until the separately scoped normalization method is implemented and verified.
 
 ## Architecture
 
@@ -95,6 +96,9 @@ model rather than presenting unsupported controls.
   private scorecard drafts, and explicitly submit a complete scorecard.
 - Submitted scorecards are read-only. Judges cannot list or retrieve peer
   scorecards; organizer score and progress inspection uses separate APIs.
+- Organizers use `/organizer/operations` to filter assignment completion and
+  coverage, download a formula-safe migration CSV, and filter append-only audit
+  history. CSV export is organizer-only at `/api/organizer/results.csv`.
 
 Reset to a completely empty local database with:
 
@@ -122,11 +126,10 @@ pnpm dev
 
 ## Verification status
 
-`.dogfood.toml` claims only T1. The generated `acceptance-report.txt` verifies
-all official T1 checks plus the three judge-isolation probes: judge A reads
-their own scores, judge B receives `403` when requesting judge A, and the
-participant receives `403`. The organizer CSV check remains the sole official
-T2 failure, so T2 is not yet claimed.
+`.dogfood.toml` claims only T1 because normalization remains outstanding. The
+official checker now passes all seven T1/T2 behavioral probes, including the
+organizer CSV contract. This is deliberately not represented as complete T2
+until the documented normalization requirement is also met.
 
 Backend unit and live API checks, frontend lint/type/build/tests, pristine
 PostgreSQL fixture verification, Alembic drift checking, and the complete live

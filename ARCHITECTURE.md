@@ -64,6 +64,20 @@ service transaction; explicit submission checks completeness, applies server
 UTC time, and appends an identifier-only audit event. Organizer score/progress
 reads use distinct organizer-only routes rather than a judge-route override.
 
+## Organizer operations, export, and audit
+
+`results` derives assignment state (`missing`, `draft`, or `submitted`), review
+coverage, completion percentages, and weighted raw averages without mutating
+the underlying scores. Organizer filters for track, judge, project, and state
+are applied by the API. The CSV endpoint emits one migration-oriented row per
+project/assignment through Python's CSV writer, includes stable relationship
+IDs and counts, and prefixes spreadsheet-trigger characters in every cell.
+
+CSV export and results publication append audit events in the same transaction
+as their state change. The audit API is organizer-only and filters by event,
+actor, action prefix, and time range. PostgreSQL rejects updates and deletes on
+`audit_events`; there are no mutation routes for audit history.
+
 ## Authentication and authorization
 
 Authentication is entirely local. Passwords are hashed with Argon2id. A

@@ -88,12 +88,63 @@ const scorecardWorkspaceSchema = z.object({
   rubric: rubricSchema,
   scorecard: scorecardSchema.nullable(),
 })
+const assignmentProgressSchema = z.object({
+  assignment_id: z.string(),
+  judge_id: z.string(),
+  judge_name: z.string(),
+  project_id: z.string(),
+  project_title: z.string(),
+  team_id: z.string(),
+  team_name: z.string(),
+  track_id: z.string(),
+  track_name: z.string(),
+  completion_state: z.enum(['missing', 'draft', 'submitted']),
+  scorecard_id: z.string().nullable(),
+  rubric_version: z.number().nullable(),
+  submitted_at: z.string().nullable(),
+  raw_weighted_score: z.number().nullable(),
+})
+const projectCoverageSchema = z.object({
+  project_id: z.string(),
+  project_title: z.string(),
+  team_id: z.string(),
+  team_name: z.string(),
+  track_id: z.string(),
+  track_name: z.string(),
+  assigned_reviews: z.number(),
+  submitted_reviews: z.number(),
+  required_reviews: z.number(),
+  is_insufficient: z.boolean(),
+})
+const progressSchema = z.object({
+  summary: z.object({
+    total_assignments: z.number(),
+    missing_scorecards: z.number(),
+    draft_scorecards: z.number(),
+    submitted_scorecards: z.number(),
+    completion_percentage: z.number(),
+    insufficient_project_count: z.number(),
+  }),
+  assignments: z.array(assignmentProgressSchema),
+  projects: z.array(projectCoverageSchema),
+})
+const auditEventSchema = z.object({
+  id: z.string(),
+  event_id: z.string().nullable(),
+  actor_id: z.string().nullable(),
+  actor_name: z.string().nullable(),
+  action: z.string(),
+  summary: z.string(),
+  detail: z.record(z.string(), z.unknown()),
+  occurred_at: z.string(),
+})
 
 export type Rubric = z.infer<typeof rubricSchema>
 export type Judge = z.infer<typeof judgeSchema>
 export type Assignment = z.infer<typeof assignmentSchema>
 export type Scorecard = z.infer<typeof scorecardSchema>
 export type ScorecardWorkspace = z.infer<typeof scorecardWorkspaceSchema>
+export type OrganizerProgress = z.infer<typeof progressSchema>
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(path, {
@@ -255,4 +306,40 @@ export async function submitScorecard(scorecardId: string) {
       { method: 'POST' },
     ),
   )
+}
+
+export async function organizerProgress(
+  eventId: string,
+  filters: {
+    track_id?: string
+    judge_id?: string
+    project_id?: string
+    completion_state?: string
+  },
+) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value)
+  })
+  const suffix = params.size ? `?${params.toString()}` : ''
+  return progressSchema.parse(
+    await request(
+      `/api/organizer/events/${encodeURIComponent(eventId)}/progress${suffix}`,
+    ),
+  )
+}
+
+export async function auditEvents(filters: {
+  event_id?: string
+  actor_id?: string
+  action?: string
+}) {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params.set(key, value)
+  })
+  const suffix = params.size ? `?${params.toString()}` : ''
+  return z
+    .array(auditEventSchema)
+    .parse(await request(`/api/organizer/audit-events${suffix}`))
 }

@@ -24,14 +24,14 @@ exists; **verified** is reserved for behavior exercised successfully.
 | T2 assign judges to projects | `judging`; `/api/judge-assignments`, event list/balance routes, `/api/judge/projects` | `/organizer/judging`, `/judge/assignments` | `judge_assignments`; unique judge/project identity | duplicate, track, unauthorized, visibility, deterministic balance and insufficient-pool tests | Verified |
 | T2 weighted versioned rubric | `judging`; event rubric list/create routes | `/organizer/judging` | `rubrics`, `rubric_criteria`; positive relative weight, range, order, and event-version checks | weight/range/label/version history tests | Verified |
 | T2 private judge scorecards | `judging`; `/api/judge/scores`, `/api/judge/scorecards`, assigned-project workspace/save/submit routes | `/judge/assignments`, `/judge/projects/:id/score` | `scorecards`, `criterion_scores`; unique judge/project/rubric identity and constrained draft/submitted state | range/completeness, own/peer/participant, guessed-ID, unassigned, track, query-tampering, and submitted-lock tests | Verified |
-| T2 organizer progress view | `judging`; `/api/organizer/events/{event_id}/judging-progress`, `/scorecards` | organizer UI remains deferred | assignment/scorecard lookup indexes | live organizer-only progress and score-data inspection | Partially implemented |
+| T2 organizer progress view | `results`; `/api/organizer/events/{event_id}/progress` | `/organizer/operations` | assignment/scorecard lookup indexes | progress counts, incomplete data, filters, coverage, frontend view | Verified |
 | T2 weighted scoring and normalization | `results`; `/api/results` | `/organizer/results` | raw score preservation; derived result query/materialization TBD | deterministic raw, overlap, one-review, constant-scorer tests | Scaffolded |
-| T2 organizer CSV export with formula safety | `results`; `/api/results.csv` | results export control | score/project lookup indexes; append-only export audit | organizer-only + CSV injection tests | Scaffolded |
-| T2 audit-sensitive actions | `audit` service | organizer audit page (post-T2 core) | `audit_events`; append-only application policy/indexes | live rubric/invitation/assignment/scorecard workflow plus database row inspection; results actions deferred | Partially implemented |
+| T2 organizer CSV export with formula safety | `results`; `/api/organizer/results.csv` | `/organizer/operations` export control | derived score/project joins; append-only export audit | organizer-only, valid parsing, stable fields, incomplete data, formula injection | Verified |
+| T2 audit-sensitive actions | `audit`; `/api/organizer/audit-events`; publication endpoint | `/organizer/operations` | `audit_events`; database update/delete rejection; `events.results_published_at` | workflow events, export/publication audit, organizer-only filtered reads | Verified |
 | **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scores` | judge assignments and scorecard editor | assignment/eligibility-scoped scorecards | official `run.py`: “judge sees own scores” | Verified |
 | **run.py 5: judge B gets 401/403 for judge A scores** | `GET /api/judge/scores?judge_id=jdg_01` | no peer-score UI or preload | authenticated actor equality before query | official `run.py`: “judge cannot see peer scores” | Verified |
 | **run.py 6: participant gets 401/403 on judge scores** | `GET /api/judge/scores` | no participant judge UI | centralized judge role policy | official `run.py`: “participant blocked” | Verified |
-| **run.py 7: organizer CSV is 200 with comma in first line** | `GET /api/organizer/results.csv` | results export control | result inputs + export audit | official `run.py`: “csv export works” | Not started |
+| **run.py 7: organizer CSV is 200 with comma in first line** | `GET /api/organizer/results.csv` | operations export control | result inputs + export audit | official `run.py`: “csv export works” | Verified |
 
 ## Scaffold milestone (2026-09-26)
 
@@ -56,10 +56,25 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 ## Next vertical slice
 
-The rubric/invitation/assignment and private-scorecard slices are complete.
-Stop here. Organizer progress UI, weighted raw scoring, normalization, and CSV
-export require separate explicit tasks; Tier 2 remains unclaimed until those
-requirements and the final official CSV check are complete.
+Organizer operations, raw weighted scoring, CSV export, and append-only audit
+history are complete. Cross-judge normalization remains the only known Tier 2
+product gap, so Tier 2 remains honestly unclaimed.
+
+## Tier 2 operations milestone (2026-09-27)
+
+- Added organizer progress summaries and assignment rows with track, judge,
+  project, and completion-state filters plus explicit insufficient-coverage
+  reporting against a configurable review target.
+- Added organizer-only CSV export with stable event/project/team/track,
+  assignment/judge/scorecard/rubric IDs, status and review-count fields, raw
+  weighted averages, standards-compliant CSV generation, and formula-prefix
+  neutralization.
+- Added filtered organizer audit history, auditable CSV export and results
+  publication, and a database trigger that rejects audit updates/deletes.
+- Added backend and frontend coverage for calculations, incomplete scores,
+  CSV parsing/safety, authorization, filters, coverage, export, and audit UI.
+- Normalization remains outside this slice; `.dogfood.toml` therefore continues
+  to claim T1 only despite all official behavioral probes now passing.
 
 ## Frontend UI/UX modernization milestone (2026-09-27)
 

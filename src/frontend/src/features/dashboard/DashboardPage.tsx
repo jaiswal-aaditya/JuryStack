@@ -108,7 +108,11 @@ function OrganizerDashboard() {
           value={query.data?.length ?? 0}
           hint="Configured locally"
         />
-        <Metric label="Management areas" value={2} hint="Events and judging" />
+        <Metric
+          label="Management areas"
+          value={3}
+          hint="Events, judging, operations"
+        />
       </div>
       <div className="quick-grid">
         <Link className="panel quick-link" to="/organizer/events">
@@ -124,6 +128,14 @@ function OrganizerDashboard() {
           <div>
             <h2>Judging setup</h2>
             <p>Manage rubrics, invitations, and assignments.</p>
+          </div>
+          <span>→</span>
+        </Link>
+        <Link className="panel quick-link" to="/organizer/operations">
+          <span className="quick-icon">O</span>
+          <div>
+            <h2>Judging operations</h2>
+            <p>Track completion, export results, and review audit history.</p>
           </div>
           <span>→</span>
         </Link>
