@@ -96,6 +96,11 @@ Tier 1 lifecycle pass. The Playwright scenario is present, but this host cannot
 launch Chromium because `libnspr4.so` is unavailable; it remains runnable on a
 host with Playwright's operating-system dependencies installed.
 
+The latest strict acceptance review repeated the build from a deleted volume,
+inspected the seed and request logs, independently probed the gallery, deadline,
+cookie mapping, and Nginx API boundary, and regenerated the report exclusively
+through `run.py`. No T1 failure or corrective product change was found.
+
 Runtime configuration is local-only and documented in `.env.example`. The
 default PostgreSQL credentials are intentionally development credentials and
 must be changed for any non-local deployment.

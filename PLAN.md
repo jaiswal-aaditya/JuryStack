@@ -146,3 +146,22 @@ Tier 1 is complete. Stop here; begin Tier 2 only under a separate explicit task.
   unavailable; the scenario and Chromium download are otherwise present.
 - `.dogfood.toml` now claims T1 only. Tier 2 remains unimplemented and its four
   checker probes honestly return `404`.
+
+## Strict T1 acceptance review (2026-09-27)
+
+- Repeated `docker compose down -v` followed by literal
+  `docker compose up --build`; all three services became healthy and the API
+  logs showed migrations from empty followed by the exact official fixture
+  counts and checker cookies.
+- Independently verified that `/api/public/projects` is unauthenticated JSON
+  containing first-three fixture titles, the stored fixture close is still
+  `2026-03-01T18:00:00Z`, `prt_2e88` maps to the first fixture participant,
+  the official late POST returns `409 deadline_closed`, and unknown `/api`
+  paths return backend JSON rather than the React SPA.
+- The pristine PostgreSQL integrity test passed. Backend Ruff passed; backend
+  tests passed 19 with three environment-gated skips, followed by both live T1
+  tests passing against Docker. Frontend lint, formatting, build, and two
+  Vitest suites passed.
+- Regenerated `acceptance-report.txt` only with the prescribed `run.py` output
+  redirection. All T1 lines pass. No product fix was required and no Tier 2
+  work was added or claimed.
