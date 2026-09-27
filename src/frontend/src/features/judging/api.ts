@@ -321,6 +321,10 @@ export async function judgeProjects() {
   return z.array(judgeProjectSchema).parse(await request('/api/judge/projects'))
 }
 
+export async function judgeScorecards() {
+  return z.array(scorecardSchema).parse(await request('/api/judge/scores'))
+}
+
 export async function scorecardWorkspace(projectId: string) {
   return scorecardWorkspaceSchema.parse(
     await request(
