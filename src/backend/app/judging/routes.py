@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_optional_actor, require_roles
 from app.auth.roles import Role
 from app.core.database import get_database_session
-from app.core.models import JudgeAssignment, JudgeInvitation, Project, Rubric, User
+from app.core.models import (
+    JudgeAssignment,
+    JudgeInvitation,
+    Project,
+    Rubric,
+    Scorecard,
+    User,
+)
 from app.judging.schemas import (
     AssignmentCreate,
     AssignmentResponse,
@@ -19,8 +26,14 @@ from app.judging.schemas import (
     JudgeInvitationResponse,
     JudgeProjectResponse,
     JudgeResponse,
+    JudgingProgressResponse,
+    OrganizerScorecardResponse,
     RubricCreate,
     RubricResponse,
+    ScorecardDraftInput,
+    ScorecardResponse,
+    ScorecardWorkspaceResponse,
+    ScoreCriterionResponse,
 )
 from app.judging.service import JudgingService
 
@@ -94,6 +107,46 @@ def project_response(project: Project) -> JudgeProjectResponse:
         track_id=project.track_id,
         track_name=project.track.name,
         submitted_at=project.submitted_at,
+    )
+
+
+def scorecard_response(scorecard: Scorecard) -> ScorecardResponse:
+    values = {item.criterion_id: item.score for item in scorecard.criterion_scores}
+    return ScorecardResponse(
+        id=scorecard.id,
+        judge_id=scorecard.judge_id,
+        project_id=scorecard.project_id,
+        project_title=scorecard.project.title,
+        event_id=scorecard.project.event_id,
+        track_id=scorecard.project.track_id,
+        track_name=scorecard.project.track.name,
+        rubric_id=scorecard.rubric_id,
+        rubric_version=scorecard.rubric.version,
+        status=scorecard.status,
+        comment=scorecard.comment,
+        submitted_at=scorecard.submitted_at,
+        criteria=[
+            ScoreCriterionResponse(
+                criterion_id=item.id,
+                label=item.label,
+                description=item.description,
+                minimum_score=item.minimum_score,
+                maximum_score=item.maximum_score,
+                weight=item.weight,
+                display_order=item.position,
+                score=values.get(item.id),
+            )
+            for item in sorted(
+                scorecard.rubric.criteria, key=lambda item: item.position
+            )
+        ],
+    )
+
+
+def organizer_scorecard_response(scorecard: Scorecard) -> OrganizerScorecardResponse:
+    response = scorecard_response(scorecard)
+    return OrganizerScorecardResponse(
+        **response.model_dump(), judge_name=scorecard.judge.display_name
     )
 
 
@@ -269,3 +322,127 @@ async def list_judge_projects(
     service: Annotated[JudgingService, Depends(get_service)],
 ) -> list[JudgeProjectResponse]:
     return [project_response(item) for item in await service.judge_projects(actor)]
+
+
+@router.get("/judge/scores", response_model=list[ScorecardResponse])
+@router.get("/judge/scorecards", response_model=list[ScorecardResponse])
+async def list_judge_scorecards(
+    actor: Judge,
+    service: Annotated[JudgingService, Depends(get_service)],
+    judge_id: str | None = None,
+) -> list[ScorecardResponse]:
+    scorecards = await service.judge_scorecards(actor, judge_id)
+    return [scorecard_response(item) for item in scorecards]
+
+
+@router.get(
+    "/judge/scorecards/{scorecard_id}", response_model=ScorecardResponse
+)
+async def judge_scorecard_detail(
+    scorecard_id: str,
+    actor: Judge,
+    service: Annotated[JudgingService, Depends(get_service)],
+) -> ScorecardResponse:
+    return scorecard_response(await service.scorecard_detail(scorecard_id, actor))
+
+
+@router.get(
+    "/judge/projects/{project_id}/scorecard",
+    response_model=ScorecardWorkspaceResponse,
+)
+async def judge_scorecard_workspace(
+    project_id: str,
+    actor: Judge,
+    service: Annotated[JudgingService, Depends(get_service)],
+) -> ScorecardWorkspaceResponse:
+    project, rubric, scorecard = await service.scorecard_workspace(project_id, actor)
+    return ScorecardWorkspaceResponse(
+        project=project_response(project),
+        rubric=rubric_response(rubric),
+        scorecard=scorecard_response(scorecard) if scorecard else None,
+    )
+
+
+@router.put(
+    "/judge/projects/{project_id}/scorecard", response_model=ScorecardResponse
+)
+async def save_judge_scorecard_draft(
+    project_id: str,
+    payload: ScorecardDraftInput,
+    actor: Judge,
+    service: Annotated[JudgingService, Depends(get_service)],
+) -> ScorecardResponse:
+    return scorecard_response(
+        await service.save_scorecard_draft(project_id, payload, actor)
+    )
+
+
+@router.post(
+    "/judge/scorecards/{scorecard_id}/submit", response_model=ScorecardResponse
+)
+async def submit_judge_scorecard(
+    scorecard_id: str,
+    actor: Judge,
+    service: Annotated[JudgingService, Depends(get_service)],
+) -> ScorecardResponse:
+    return scorecard_response(await service.submit_scorecard(scorecard_id, actor))
+
+
+@router.get(
+    "/organizer/events/{event_id}/scorecards",
+    response_model=list[OrganizerScorecardResponse],
+)
+async def organizer_scorecards(
+    event_id: str,
+    _: Organizer,
+    service: Annotated[JudgingService, Depends(get_service)],
+) -> list[OrganizerScorecardResponse]:
+    return [
+        organizer_scorecard_response(item)
+        for item in await service.organizer_scorecards(event_id)
+    ]
+
+
+@router.get(
+    "/organizer/events/{event_id}/judging-progress",
+    response_model=list[JudgingProgressResponse],
+)
+async def organizer_judging_progress(
+    event_id: str,
+    _: Organizer,
+    service: Annotated[JudgingService, Depends(get_service)],
+) -> list[JudgingProgressResponse]:
+    assignments, scorecards = await service.organizer_progress(event_id)
+    latest: dict[tuple[str, str], Scorecard] = {}
+    for scorecard in scorecards:
+        key = (scorecard.judge_id, scorecard.project_id)
+        current = latest.get(key)
+        if current is None or scorecard.rubric.version > current.rubric.version:
+            latest[key] = scorecard
+    return [
+        JudgingProgressResponse(
+            assignment_id=assignment.id,
+            judge_id=assignment.judge_id,
+            judge_name=assignment.judge.display_name,
+            project_id=assignment.project_id,
+            project_title=assignment.project.title,
+            track_id=assignment.project.track_id,
+            track_name=assignment.project.track.name,
+            status=(
+                latest[(assignment.judge_id, assignment.project_id)].status
+                if (assignment.judge_id, assignment.project_id) in latest
+                else "not_started"
+            ),
+            rubric_version=(
+                latest[(assignment.judge_id, assignment.project_id)].rubric.version
+                if (assignment.judge_id, assignment.project_id) in latest
+                else None
+            ),
+            submitted_at=(
+                latest[(assignment.judge_id, assignment.project_id)].submitted_at
+                if (assignment.judge_id, assignment.project_id) in latest
+                else None
+            ),
+        )
+        for assignment in assignments
+    ]

@@ -58,10 +58,42 @@ const judgeProjectSchema = z.object({
   track_name: z.string(),
   submitted_at: z.string().nullable(),
 })
+const scoreCriterionSchema = z.object({
+  criterion_id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  minimum_score: z.number(),
+  maximum_score: z.number(),
+  weight: z.number(),
+  display_order: z.number(),
+  score: z.number().nullable(),
+})
+const scorecardSchema = z.object({
+  id: z.string(),
+  judge_id: z.string(),
+  project_id: z.string(),
+  project_title: z.string(),
+  event_id: z.string(),
+  track_id: z.string(),
+  track_name: z.string(),
+  rubric_id: z.string(),
+  rubric_version: z.number(),
+  status: z.string(),
+  comment: z.string(),
+  submitted_at: z.string().nullable(),
+  criteria: z.array(scoreCriterionSchema),
+})
+const scorecardWorkspaceSchema = z.object({
+  project: judgeProjectSchema,
+  rubric: rubricSchema,
+  scorecard: scorecardSchema.nullable(),
+})
 
 export type Rubric = z.infer<typeof rubricSchema>
 export type Judge = z.infer<typeof judgeSchema>
 export type Assignment = z.infer<typeof assignmentSchema>
+export type Scorecard = z.infer<typeof scorecardSchema>
+export type ScorecardWorkspace = z.infer<typeof scorecardWorkspaceSchema>
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(path, {
@@ -187,4 +219,40 @@ export async function balanceAssignments(
 
 export async function judgeProjects() {
   return z.array(judgeProjectSchema).parse(await request('/api/judge/projects'))
+}
+
+export async function scorecardWorkspace(projectId: string) {
+  return scorecardWorkspaceSchema.parse(
+    await request(
+      `/api/judge/projects/${encodeURIComponent(projectId)}/scorecard`,
+    ),
+  )
+}
+
+export async function saveScorecardDraft(
+  projectId: string,
+  input: {
+    rubric_id: string
+    comment: string
+    scores: Array<{ criterion_id: string; score: number }>
+  },
+) {
+  return scorecardSchema.parse(
+    await request(
+      `/api/judge/projects/${encodeURIComponent(projectId)}/scorecard`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(input),
+      },
+    ),
+  )
+}
+
+export async function submitScorecard(scorecardId: string) {
+  return scorecardSchema.parse(
+    await request(
+      `/api/judge/scorecards/${encodeURIComponent(scorecardId)}/submit`,
+      { method: 'POST' },
+    ),
+  )
 }

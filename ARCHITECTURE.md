@@ -56,6 +56,14 @@ cannot widen judge visibility. Rubric, invitation, acceptance, manual
 assignment, removal, and balanced-batch writes append readable audit events in
 the same transaction.
 
+Private scorecard queries add the authenticated judge, assignment, and current
+track-eligibility predicates in the repository itself. List and detail routes
+therefore cannot widen scope through query parameters or guessed IDs. Draft
+save validates rubric ownership, criterion identity, and score bounds in the
+service transaction; explicit submission checks completeness, applies server
+UTC time, and appends an identifier-only audit event. Organizer score/progress
+reads use distinct organizer-only routes rather than a judge-route override.
+
 ## Authentication and authorization
 
 Authentication is entirely local. Passwords are hashed with Argon2id. A

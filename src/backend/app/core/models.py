@@ -333,6 +333,14 @@ class Scorecard(Base):
     __tablename__ = "scorecards"
     __table_args__ = (
         UniqueConstraint("judge_id", "project_id", "rubric_id"),
+        CheckConstraint(
+            "status IN ('draft', 'submitted')", name="ck_scorecards_status"
+        ),
+        CheckConstraint(
+            "(status = 'draft' AND submitted_at IS NULL) OR "
+            "(status = 'submitted' AND submitted_at IS NOT NULL)",
+            name="ck_scorecards_submission_state",
+        ),
         Index("ix_scorecards_judge_status", "judge_id", "status"),
     )
 
@@ -350,7 +358,7 @@ class Scorecard(Base):
     project: Mapped[Project] = relationship(back_populates="scorecards")
     rubric: Mapped[Rubric] = relationship(back_populates="scorecards")
     criterion_scores: Mapped[list[CriterionScore]] = relationship(
-        back_populates="scorecard"
+        back_populates="scorecard", cascade="all, delete-orphan"
     )
 
 

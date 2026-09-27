@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router'
 
 import { judgeProjects } from './api'
 import { EmptyState, ErrorState, Loading } from '../../shared/AsyncState'
@@ -39,6 +40,12 @@ export function JudgeAssignmentsPage() {
             >
               Open repository
             </a>
+            <Link
+              className="ml-5 mt-4 inline-block font-medium text-cyan-300"
+              to={`/judge/projects/${project.id}/score`}
+            >
+              Open scorecard
+            </Link>
           </li>
         ))}
       </ul>

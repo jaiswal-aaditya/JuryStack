@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.service import record_audit
 from app.auth.security import hash_password
-from app.core.errors import Conflict, PermissionDenied, ResourceNotFound
+from app.core.errors import Conflict, InvalidRequest, PermissionDenied, ResourceNotFound
 from app.core.models import (
+    CriterionScore,
     JudgeAssignment,
     JudgeInvitation,
     JudgeInvitationTrack,
@@ -19,6 +20,7 @@ from app.core.models import (
     Project,
     Rubric,
     RubricCriterion,
+    Scorecard,
     User,
 )
 from app.judging.repository import JudgingRepository
@@ -29,6 +31,7 @@ from app.judging.schemas import (
     JudgeInvitationAccept,
     JudgeInvitationCreate,
     RubricCreate,
+    ScorecardDraftInput,
 )
 
 
@@ -406,6 +409,172 @@ class JudgingService:
 
     async def judge_projects(self, actor: User) -> list[Project]:
         return await self.repository.judge_projects(actor.id)
+
+    async def judge_scorecards(
+        self, actor: User, requested_judge_id: str | None = None
+    ) -> list[Scorecard]:
+        if requested_judge_id is not None and requested_judge_id != actor.id:
+            raise PermissionDenied("Judges cannot access another judge's scorecards.")
+        return await self.repository.judge_scorecards(actor.id)
+
+    async def scorecard_detail(self, scorecard_id: str, actor: User) -> Scorecard:
+        scorecard = await self.repository.judge_scorecard(actor.id, scorecard_id)
+        if scorecard is None:
+            raise ResourceNotFound("Scorecard not found.")
+        return scorecard
+
+    async def scorecard_workspace(
+        self, project_id: str, actor: User
+    ) -> tuple[Project, Rubric, Scorecard | None]:
+        project = await self._assigned_project(actor.id, project_id)
+        scorecards = await self.repository.judge_project_scorecards(
+            actor.id, project.id
+        )
+        drafts = [item for item in scorecards if item.status == "draft"]
+        if drafts:
+            scorecard = max(drafts, key=lambda item: item.rubric.version)
+            return project, scorecard.rubric, scorecard
+        rubric = await self.repository.active_rubric(project.event_id)
+        if rubric is None:
+            raise Conflict(
+                "rubric_unavailable", "No active rubric is available for this event."
+            )
+        active_scorecard = next(
+            (item for item in scorecards if item.rubric_id == rubric.id), None
+        )
+        return project, rubric, active_scorecard
+
+    async def save_scorecard_draft(
+        self, project_id: str, payload: ScorecardDraftInput, actor: User
+    ) -> Scorecard:
+        project = await self._assigned_project(actor.id, project_id)
+        rubric = await self.repository.rubric(payload.rubric_id)
+        if rubric is None or rubric.event_id != project.event_id:
+            raise InvalidRequest(
+                "rubric_unavailable", "The rubric is unavailable for this project."
+            )
+        scorecard = await self.repository.judge_project_rubric_scorecard(
+            actor.id, project.id, rubric.id, lock=True
+        )
+        if scorecard is None:
+            if not rubric.is_active:
+                raise Conflict(
+                    "rubric_not_active",
+                    "Reload the scorecard before starting this rubric version.",
+                )
+            scorecard = Scorecard(
+                id=f"scr_{secrets.token_hex(16)}",
+                judge_id=actor.id,
+                project_id=project.id,
+                rubric_id=rubric.id,
+                status="draft",
+                comment="",
+                submitted_at=None,
+            )
+            scorecard.rubric = rubric
+            scorecard.project = project
+            scorecard.judge = actor
+            self.session.add(scorecard)
+        elif scorecard.status == "submitted":
+            raise Conflict(
+                "scorecard_submitted", "Submitted scorecards cannot be edited."
+            )
+
+        values = self._validated_scores(rubric, payload)
+        scorecard.comment = payload.comment.strip()
+        scorecard.criterion_scores = [
+            CriterionScore(
+                scorecard_id=scorecard.id,
+                criterion_id=criterion_id,
+                score=score,
+            )
+            for criterion_id, score in values.items()
+        ]
+        await self._commit(
+            "scorecard_conflict", "The scorecard changed while it was being saved."
+        )
+        saved = await self.repository.judge_scorecard(actor.id, scorecard.id)
+        assert saved is not None
+        return saved
+
+    async def submit_scorecard(self, scorecard_id: str, actor: User) -> Scorecard:
+        scorecard = await self.repository.judge_scorecard(
+            actor.id, scorecard_id, lock=True
+        )
+        if scorecard is None:
+            raise ResourceNotFound("Scorecard not found.")
+        if scorecard.status == "submitted":
+            raise Conflict(
+                "scorecard_submitted", "This scorecard was already submitted."
+            )
+        expected = {item.id for item in scorecard.rubric.criteria}
+        actual = {item.criterion_id for item in scorecard.criterion_scores}
+        if actual != expected:
+            raise Conflict(
+                "scorecard_incomplete",
+                "Every rubric criterion must be scored before submission.",
+            )
+        scorecard.status = "submitted"
+        scorecard.submitted_at = datetime.now(UTC)
+        record_audit(
+            self.session,
+            action="judge.scorecard_submitted",
+            actor_id=actor.id,
+            event_id=scorecard.project.event_id,
+            detail={
+                "scorecard_id": scorecard.id,
+                "judge_id": actor.id,
+                "project_id": scorecard.project_id,
+                "rubric_id": scorecard.rubric_id,
+            },
+        )
+        await self._commit(
+            "scorecard_conflict", "The scorecard changed while it was submitted."
+        )
+        submitted = await self.repository.judge_scorecard(actor.id, scorecard.id)
+        assert submitted is not None
+        return submitted
+
+    async def organizer_scorecards(self, event_id: str) -> list[Scorecard]:
+        await self._event(event_id)
+        return await self.repository.organizer_scorecards(event_id)
+
+    async def organizer_progress(
+        self, event_id: str
+    ) -> tuple[list[JudgeAssignment], list[Scorecard]]:
+        await self._event(event_id)
+        return (
+            await self.repository.assignments(event_id),
+            await self.repository.organizer_scorecards(event_id),
+        )
+
+    async def _assigned_project(self, judge_id: str, project_id: str) -> Project:
+        project = await self.repository.assigned_project(judge_id, project_id)
+        if project is None:
+            raise PermissionDenied("The project is not assigned to this judge.")
+        return project
+
+    @staticmethod
+    def _validated_scores(
+        rubric: Rubric, payload: ScorecardDraftInput
+    ) -> dict[str, int]:
+        criteria = {item.id: item for item in rubric.criteria}
+        values: dict[str, int] = {}
+        for item in payload.scores:
+            criterion = criteria.get(item.criterion_id)
+            if criterion is None:
+                raise InvalidRequest(
+                    "criterion_mismatch",
+                    "Every score must belong to the selected rubric.",
+                )
+            if not criterion.minimum_score <= item.score <= criterion.maximum_score:
+                raise InvalidRequest(
+                    "score_out_of_range",
+                    f"{criterion.label} must be between "
+                    f"{criterion.minimum_score} and {criterion.maximum_score}.",
+                )
+            values[item.criterion_id] = item.score
+        return values
 
     async def _commit(self, code: str, message: str) -> None:
         try:

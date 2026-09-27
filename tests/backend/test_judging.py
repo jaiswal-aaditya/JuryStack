@@ -2,9 +2,13 @@ from collections import Counter
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.core.errors import Conflict
-from app.core.models import JudgeInvitation
-from app.judging.schemas import JudgeInvitationAccept, RubricCreate
+from app.core.errors import Conflict, InvalidRequest
+from app.core.models import JudgeInvitation, Rubric, RubricCriterion
+from app.judging.schemas import (
+    JudgeInvitationAccept,
+    RubricCreate,
+    ScorecardDraftInput,
+)
 from app.judging.service import JudgingService, plan_balanced_assignments
 from pydantic import ValidationError
 
@@ -104,3 +108,58 @@ def test_balancer_fails_atomically_when_a_track_has_too_few_judges() -> None:
             reviews_per_project=2,
         )
     assert error.value.code == "insufficient_eligible_judges"
+
+
+def test_scorecard_scores_must_match_criterion_ranges_and_identity() -> None:
+    rubric = Rubric(id="rub_test", event_id="evt_test", version=1, is_active=True)
+    rubric.criteria = [
+        RubricCriterion(
+            id="crit_impact",
+            rubric_id=rubric.id,
+            key="impact",
+            label="Impact",
+            description="",
+            weight=2,
+            minimum_score=0,
+            maximum_score=10,
+            position=1,
+        )
+    ]
+    valid = ScorecardDraftInput.model_validate(
+        {
+            "rubric_id": rubric.id,
+            "scores": [{"criterion_id": "crit_impact", "score": 10}],
+        }
+    )
+    assert JudgingService._validated_scores(rubric, valid) == {"crit_impact": 10}
+
+    out_of_range = ScorecardDraftInput.model_validate(
+        {
+            "rubric_id": rubric.id,
+            "scores": [{"criterion_id": "crit_impact", "score": 11}],
+        }
+    )
+    with pytest.raises(InvalidRequest) as range_error:
+        JudgingService._validated_scores(rubric, out_of_range)
+    assert range_error.value.code == "score_out_of_range"
+
+    wrong_criterion = ScorecardDraftInput.model_validate(
+        {
+            "rubric_id": rubric.id,
+            "scores": [{"criterion_id": "crit_peer", "score": 5}],
+        }
+    )
+    with pytest.raises(InvalidRequest) as identity_error:
+        JudgingService._validated_scores(rubric, wrong_criterion)
+    assert identity_error.value.code == "criterion_mismatch"
+
+    with pytest.raises(ValidationError):
+        ScorecardDraftInput.model_validate(
+            {
+                "rubric_id": rubric.id,
+                "scores": [
+                    {"criterion_id": "crit_impact", "score": 3},
+                    {"criterion_id": "crit_impact", "score": 4},
+                ],
+            }
+        )

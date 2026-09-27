@@ -4,6 +4,7 @@ import { App } from '../App'
 import { LoginPage } from '../features/auth/LoginPage'
 import { JudgeAssignmentsPage } from '../features/judging/JudgeAssignmentsPage'
 import { JudgeInvitationPage } from '../features/judging/JudgeInvitationPage'
+import { JudgeScorecardPage } from '../features/judging/JudgeScorecardPage'
 import { OrganizerJudgingPage } from '../features/judging/OrganizerJudgingPage'
 import { GalleryPage } from '../features/tier1/GalleryPage'
 import { OrganizerEventsPage } from '../features/tier1/OrganizerEventsPage'
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
       { path: 'organizer/events', element: <OrganizerEventsPage /> },
       { path: 'organizer/judging', element: <OrganizerJudgingPage /> },
       { path: 'judge/assignments', element: <JudgeAssignmentsPage /> },
+      {
+        path: 'judge/projects/:projectId/score',
+        element: <JudgeScorecardPage />,
+      },
       { path: 'judge-invitations/:token', element: <JudgeInvitationPage /> },
     ],
   },

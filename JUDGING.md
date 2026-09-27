@@ -11,8 +11,8 @@ weights, and ranges where `minimum_score >= maximum_score`.
 Every save creates the next event rubric version and marks the previous version
 inactive. It never edits historical criteria. A scorecard references its exact
 rubric version, so a later organizer change cannot silently reinterpret stored
-scores. Scorecard editing and weighted-score calculation are intentionally not
-part of this first Tier 2 slice.
+scores. Private scorecard editing is implemented below; weighted-score
+calculation remains deferred as a separate results concern.
 
 ## Judge invitations and assignment
 
@@ -42,11 +42,36 @@ Rubric changes, invitation creation/acceptance, and assignment changes append
 human-readable action names with structured JSON detail to `audit_events` in
 the same transaction.
 
+## Private scorecards and isolation
+
+A judge can list only scorecards joined to their authenticated user ID, an
+existing assignment, and current eligibility for the project's track. The
+checker-compatible `judge_id` query is accepted only when it equals the actor;
+requesting another judge returns `403` before score data is queried. Detail
+lookups also include the actor and assignment scope, so a guessed peer
+scorecard ID returns an undisclosed `404`. Participants receive `403` at the
+role boundary. Judge responses, frontend queries, errors, and submission audit
+details contain no peer comments or criterion values.
+
+Drafts are keyed by judge, project, and rubric version. A draft can contain a
+subset of criteria and can be saved repeatedly to the same logical row. Every
+criterion ID must belong to that rubric and every integer value must fall in
+its configured inclusive range. Submission is a separate action requiring all
+criteria; it sets the server UTC timestamp, records
+`judge.scorecard_submitted` without score/comment content, and makes the card
+read-only. A new active rubric never rewrites a prior submitted card.
+After any in-progress draft is completed, the judge workspace selects the
+active rubric and starts a distinct logical card when only historical submitted
+versions exist.
+
+Organizers inspect raw scorecards and latest-per-assignment progress through
+separate organizer-role endpoints. These endpoints are not exposed to judges.
+
 ## Deferred judging work
 
-Private scorecard editing, progress monitoring, weighted raw-score output,
-normalization, and results export remain separate later slices. Raw fixture
-scores remain preserved. No normalization method is implemented or claimed;
-its formula and fallbacks for constant scorers, one-review judges, incomplete
-criteria, and insufficient overlap must be documented with deterministic tests
-before Tier 2 is claimed.
+The organizer progress UI, weighted raw-score output, normalization, and CSV
+results export remain separate later slices. Raw fixture scores remain
+preserved. No normalization method is implemented or claimed; its formula and
+fallbacks for constant scorers, one-review judges, incomplete criteria, and
+insufficient overlap must be documented with deterministic tests before Tier 2
+is claimed.

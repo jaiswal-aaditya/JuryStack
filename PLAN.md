@@ -23,14 +23,14 @@ exists; **verified** is reserved for behavior exercised successfully.
 | T2 invite judges and track eligibility | `judging`; `/api/judge-invitations` | `/organizer/judging`, local acceptance link | `judge_invitations`, `judge_invitation_tracks`, `judge_track_eligibility`; unique hash, expiry, row-locked single use | expiry/reuse and live acceptance/track-scope tests | Verified |
 | T2 assign judges to projects | `judging`; `/api/judge-assignments`, event list/balance routes, `/api/judge/projects` | `/organizer/judging`, `/judge/assignments` | `judge_assignments`; unique judge/project identity | duplicate, track, unauthorized, visibility, deterministic balance and insufficient-pool tests | Verified |
 | T2 weighted versioned rubric | `judging`; event rubric list/create routes | `/organizer/judging` | `rubrics`, `rubric_criteria`; positive relative weight, range, order, and event-version checks | weight/range/label/version history tests | Verified |
-| T2 private judge scorecards | `judging`; `/api/judge/scorecards` | `/judge/projects/:id` | `scorecards`, `criterion_scores`; one logical card per judge/project/version | own/peer/participant and assignment isolation tests | Scaffolded |
-| T2 organizer progress view | `judging`; `/api/organizer/judging-progress` | `/organizer/progress` | assignment/scorecard lookup indexes | missing/incomplete/unequal-review tests | Scaffolded |
+| T2 private judge scorecards | `judging`; `/api/judge/scores`, `/api/judge/scorecards`, assigned-project workspace/save/submit routes | `/judge/assignments`, `/judge/projects/:id/score` | `scorecards`, `criterion_scores`; unique judge/project/rubric identity and constrained draft/submitted state | range/completeness, own/peer/participant, guessed-ID, unassigned, track, query-tampering, and submitted-lock tests | Verified |
+| T2 organizer progress view | `judging`; `/api/organizer/events/{event_id}/judging-progress`, `/scorecards` | organizer UI remains deferred | assignment/scorecard lookup indexes | live organizer-only progress and score-data inspection | Partially implemented |
 | T2 weighted scoring and normalization | `results`; `/api/results` | `/organizer/results` | raw score preservation; derived result query/materialization TBD | deterministic raw, overlap, one-review, constant-scorer tests | Scaffolded |
 | T2 organizer CSV export with formula safety | `results`; `/api/results.csv` | results export control | score/project lookup indexes; append-only export audit | organizer-only + CSV injection tests | Scaffolded |
-| T2 audit-sensitive actions | `audit` service | organizer audit page (post-T2 core) | `audit_events`; append-only application policy/indexes | live rubric/invitation/assignment workflow plus database row inspection; remaining score/results actions deferred | Partially implemented |
-| **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scores` | judge dashboard | assignments/scorecards/criterion scores | official `run.py`: “judge sees own scores” | Not started |
-| **run.py 5: judge B gets 401/403 for judge A scores** | `GET /api/judge/scores?judge_id=jdg_01` | no peer-score UI | centralized actor/scorecard policy | official `run.py`: “judge cannot see peer scores” | Not started |
-| **run.py 6: participant gets 401/403 on judge scores** | `GET /api/judge/scores` | no participant judge UI | centralized role policy | official `run.py`: “participant blocked” | Not started |
+| T2 audit-sensitive actions | `audit` service | organizer audit page (post-T2 core) | `audit_events`; append-only application policy/indexes | live rubric/invitation/assignment/scorecard workflow plus database row inspection; results actions deferred | Partially implemented |
+| **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scores` | judge assignments and scorecard editor | assignment/eligibility-scoped scorecards | official `run.py`: “judge sees own scores” | Verified |
+| **run.py 5: judge B gets 401/403 for judge A scores** | `GET /api/judge/scores?judge_id=jdg_01` | no peer-score UI or preload | authenticated actor equality before query | official `run.py`: “judge cannot see peer scores” | Verified |
+| **run.py 6: participant gets 401/403 on judge scores** | `GET /api/judge/scores` | no participant judge UI | centralized judge role policy | official `run.py`: “participant blocked” | Verified |
 | **run.py 7: organizer CSV is 200 with comma in first line** | `GET /api/organizer/results.csv` | results export control | result inputs + export audit | official `run.py`: “csv export works” | Not started |
 
 ## Scaffold milestone (2026-09-26)
@@ -56,11 +56,10 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 ## Next vertical slice
 
-The first Tier 2 slice (rubric configuration, local judge invitation, and
-track-safe manual/balanced assignment) is complete. Stop here. Scorecard entry,
-progress, raw scoring, normalization, and export require a separate explicit
-task; Tier 2 remains unclaimed until those requirements and official checks are
-complete.
+The rubric/invitation/assignment and private-scorecard slices are complete.
+Stop here. Organizer progress UI, weighted raw scoring, normalization, and CSV
+export require separate explicit tasks; Tier 2 remains unclaimed until those
+requirements and the final official CSV check are complete.
 
 ## Authentication foundation milestone (2026-09-27)
 
@@ -190,3 +189,30 @@ complete.
 - Normalization, scorecard entry, judging progress, results, and CSV export were
   not implemented in this slice. `.dogfood.toml` therefore continues to claim
   only T1.
+
+## Private scorecard and judge-isolation milestone (2026-09-27)
+
+- Added assignment-and-current-track-scoped judge scorecard list, workspace,
+  detail, draft-save, and explicit-submit endpoints. Drafts may be partial;
+  submission requires every criterion and locks the card from later edits.
+- Enforced criterion identity and configured score bounds in the service, one
+  logical judge/project/rubric scorecard in PostgreSQL, and consistent
+  draft/submitted timestamp state through Alembic revision `20260927_0005`.
+- Added separate organizer-authorized raw scorecard and judging-progress
+  endpoints. Judge routes never accept organizer override and never serialize
+  peer data; peer detail guesses are deliberately undisclosed as `404`.
+- Added a judge scoring page for criterion inputs, private comments, partial
+  draft saving, explicit submission, and read-only submitted state. It calls
+  only actor-scoped judge endpoints and preloads no peer scores.
+- Adversarial live coverage includes changed `judge_id`, guessed peer card IDs,
+  an unassigned same-track project, another track, peer detail/list access,
+  participant list/detail/write access, invalid ranges, incomplete submission,
+  duplicate logical saves, submitted-card edits, and organizer-only inspection.
+- The official judge-own, peer-denial, and participant-denial probes now pass.
+  CSV export remains unimplemented, so `.dogfood.toml` still claims only T1.
+- Final verification rebuilt from a deleted Compose volume: migration/fixture
+  integration and Alembic drift checks passed, backend tests passed 25 with 5
+  environment-gated skips, all 4 live judging/Tier 1 tests passed, and all 5
+  frontend tests plus lint, formatting, and production build passed. The
+  official report has all T1 and judge-isolation lines passing; only the
+  deliberately deferred CSV line fails.

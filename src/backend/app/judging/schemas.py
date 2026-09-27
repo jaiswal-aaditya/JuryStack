@@ -155,3 +155,73 @@ class JudgeProjectResponse(BaseModel):
     track_id: str
     track_name: str
     submitted_at: datetime | None
+
+
+class CriterionScoreInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    criterion_id: str
+    score: int = Field(ge=0, le=100)
+
+
+class ScorecardDraftInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rubric_id: str
+    scores: list[CriterionScoreInput] = Field(default_factory=list, max_length=25)
+    comment: str = Field(default="", max_length=10000)
+
+    @model_validator(mode="after")
+    def unique_criteria(self) -> "ScorecardDraftInput":
+        criterion_ids = [item.criterion_id for item in self.scores]
+        if len(set(criterion_ids)) != len(criterion_ids):
+            raise ValueError("Criterion scores must be unique.")
+        return self
+
+
+class ScoreCriterionResponse(BaseModel):
+    criterion_id: str
+    label: str
+    description: str
+    minimum_score: int
+    maximum_score: int
+    weight: int
+    display_order: int
+    score: int | None
+
+
+class ScorecardResponse(BaseModel):
+    id: str
+    judge_id: str
+    project_id: str
+    project_title: str
+    event_id: str
+    track_id: str
+    track_name: str
+    rubric_id: str
+    rubric_version: int
+    status: str
+    comment: str
+    submitted_at: datetime | None
+    criteria: list[ScoreCriterionResponse]
+
+
+class ScorecardWorkspaceResponse(BaseModel):
+    project: JudgeProjectResponse
+    rubric: RubricResponse
+    scorecard: ScorecardResponse | None
+
+
+class OrganizerScorecardResponse(ScorecardResponse):
+    judge_name: str
+
+
+class JudgingProgressResponse(BaseModel):
+    assignment_id: str
+    judge_id: str
+    judge_name: str
+    project_id: str
+    project_title: str
+    track_id: str
+    track_name: str
+    status: str
+    rubric_version: int | None
+    submitted_at: datetime | None

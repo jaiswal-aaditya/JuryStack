@@ -4,7 +4,8 @@ JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
 2026. Tier 1 is implemented end to end: organizers configure events,
 participants form teams and submit projects before a server-enforced UTC
 deadline, and visitors browse a searchable, filterable public gallery. Tier 2
-is intentionally not started or claimed.
+rubric, invitation, assignment, and private-scorecard slices are implemented,
+but Tier 2 remains unclaimed until results normalization and CSV export exist.
 
 ## Architecture
 
@@ -19,17 +20,31 @@ No runtime cloud service, hosted account, or external API is required.
 ## Local runtime
 
 Copy `.env.example` to `.env` only when overriding the safe local defaults.
-Build and start the complete portal with:
+Build and start the complete portal, recreating any container that still points
+at an older local image, with:
 
 ```bash
-docker compose up --build
+docker compose up --build --force-recreate
 ```
 
-After the images exist, the official command is sufficient:
+The shorter official command remains sufficient when the source tree has not
+changed:
 
 ```bash
 docker compose up
 ```
+
+If a previous interrupted build left stale Docker cache, perform one guaranteed
+clean image rebuild:
+
+```bash
+docker compose build --no-cache
+docker compose up --force-recreate
+```
+
+The Nginx application route sends `Cache-Control: no-store`, so a normal browser
+refresh after the recreated `web` container starts loads the current frontend
+bundle rather than an older cached shell.
 
 The API container waits for PostgreSQL readiness, applies Alembic migrations,
 and transactionally upserts `fixtures.json` before starting FastAPI. Open
@@ -58,6 +73,15 @@ The fixture event is deliberately closed. To exercise the open-event path,
 create a future event as the organizer, then log in as a participant and form a
 team for it.
 
+## Judging flows
+
+- Organizers configure versioned rubrics, invite local judges, and manage
+  track-safe assignments at `/organizer/judging`.
+- Judges open `/judge/assignments`, select an assigned project, save partial
+  private scorecard drafts, and explicitly submit a complete scorecard.
+- Submitted scorecards are read-only. Judges cannot list or retrieve peer
+  scorecards; organizer score and progress inspection uses separate APIs.
+
 Reset to a completely empty local database with:
 
 ```bash
@@ -85,10 +109,10 @@ pnpm dev
 ## Verification status
 
 `.dogfood.toml` claims only T1. The generated `acceptance-report.txt` verifies
-all official T1 checks: the unauthenticated gallery returns `200`, fixture
-titles appear in its raw response, and the closed fixture event rejects the
-participant's direct project POST with a genuine deadline conflict. T2 routes
-remain absent and the checker reports their expected failures.
+all official T1 checks plus the three judge-isolation probes: judge A reads
+their own scores, judge B receives `403` when requesting judge A, and the
+participant receives `403`. The organizer CSV check remains the sole official
+T2 failure, so T2 is not yet claimed.
 
 Backend unit and live API checks, frontend lint/type/build/tests, pristine
 PostgreSQL fixture verification, Alembic drift checking, and the complete live
