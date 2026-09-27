@@ -61,6 +61,7 @@ function JudgeScorecardForm({
       await queryClient.invalidateQueries({
         queryKey: ['judge-scorecard', projectId],
       })
+      await queryClient.invalidateQueries({ queryKey: ['judge-scorecards'] })
     },
   })
   const submitMutation = useMutation({
@@ -73,6 +74,7 @@ function JudgeScorecardForm({
       await queryClient.invalidateQueries({
         queryKey: ['judge-scorecard', projectId],
       })
+      await queryClient.invalidateQueries({ queryKey: ['judge-scorecards'] })
     },
   })
 

@@ -58,6 +58,7 @@ function GallerySkeleton() {
 export function GalleryPage() {
   const [search, setSearch] = useState('')
   const [trackId, setTrackId] = useState('')
+  const [sortBy, setSortBy] = useState<'newest' | 'title' | 'team'>('newest')
   const searchRef = useRef<HTMLInputElement>(null)
   const all = useQuery({
     queryKey: ['gallery', 'all'],
@@ -76,6 +77,14 @@ export function GalleryPage() {
     })
   }
   const tracks = Array.from(trackMap)
+  const sortedProjects = [...(filtered.data?.items ?? [])].sort((left, right) => {
+    if (sortBy === 'title') return left.title.localeCompare(right.title)
+    if (sortBy === 'team') return left.team_name.localeCompare(right.team_name)
+    return (
+      new Date(right.submitted_at ?? 0).getTime() -
+      new Date(left.submitted_at ?? 0).getTime()
+    )
+  })
 
   useEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
@@ -168,7 +177,35 @@ export function GalleryPage() {
       <div className="gallery-results">
         <div className="results-heading">
           <h2>{search || trackId ? 'Filtered projects' : 'All projects'}</h2>
-          {filtered.data && <span>{filtered.data.total} results</span>}
+          <div className="results-tools">
+            {filtered.data && <span>{filtered.data.total} results</span>}
+            <label className="sort-control">
+              <span className="sr-only">Sort projects</span>
+              <select
+                aria-label="Sort projects"
+                onChange={(event) =>
+                  setSortBy(event.target.value as 'newest' | 'title' | 'team')
+                }
+                value={sortBy}
+              >
+                <option value="newest">Newest first</option>
+                <option value="title">Project name</option>
+                <option value="team">Team name</option>
+              </select>
+            </label>
+            {(search || trackId) && (
+              <button
+                className="clear-filters"
+                onClick={() => {
+                  setSearch('')
+                  setTrackId('')
+                }}
+                type="button"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
         {filtered.isLoading && <GallerySkeleton />}
         {filtered.error && <ErrorState error={filtered.error} />}
@@ -176,7 +213,7 @@ export function GalleryPage() {
           <EmptyState>No submitted projects match these filters.</EmptyState>
         )}
         <ul className="project-grid">
-          {filtered.data?.items.map((project) => (
+          {sortedProjects.map((project) => (
             <li key={project.id} className="project-card">
               <span className="badge badge-blue">{project.track_name}</span>
               <h3>
@@ -186,6 +223,34 @@ export function GalleryPage() {
               </h3>
               <p className="project-team">By {project.team_name}</p>
               <p className="project-summary">{project.summary}</p>
+              <details className="project-peek">
+                <summary>
+                  <span>Quick peek</span>
+                  <span aria-hidden="true" className="peek-indicator">
+                    <svg viewBox="0 0 12 12" fill="none">
+                      <path d="M6 2.5v7M2.5 6h7" />
+                    </svg>
+                  </span>
+                </summary>
+                <div className="project-peek-content">
+                  <p>{project.summary}</p>
+                  <div>
+                    <span>
+                      Submitted{' '}
+                      {project.submitted_at
+                        ? new Date(project.submitted_at).toLocaleDateString()
+                        : 'date unavailable'}
+                    </span>
+                    <a
+                      href={project.repo_url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Open repository ↗
+                    </a>
+                  </div>
+                </div>
+              </details>
               <div className="project-meta">
                 <span className="repo-badge">
                   <RepositoryIcon /> Repository
