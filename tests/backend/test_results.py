@@ -20,13 +20,19 @@ def test_weighted_score_handles_incomplete_criterion_data() -> None:
     card = ns(
         rubric=ns(
             criteria=[
-                ns(id="quality", weight=3),
-                ns(id="impact", weight=1),
+                ns(
+                    id="quality", weight=3, minimum_score=1, maximum_score=5, position=1
+                ),
+                ns(id="impact", weight=1, minimum_score=1, maximum_score=5, position=2),
             ]
         ),
         criterion_scores=[ns(criterion_id="quality", score=4)],
     )
-    assert raw_weighted_score(card) == 4.0
+    card.id = "scr_test"
+    card.judge_id = "jdg_test"
+    card.project_id = "prj_test"
+    card.status = "submitted"
+    assert raw_weighted_score(card) is None
     assert raw_weighted_score(None) is None
 
 
@@ -100,7 +106,12 @@ def sample_data():  # type: ignore[no-untyped-def]
         ),
     ]
     rubric = ns(
-        id="rub_1", version=1, criteria=[ns(id="c1", weight=2), ns(id="c2", weight=1)]
+        id="rub_1",
+        version=1,
+        criteria=[
+            ns(id="c1", weight=2, minimum_score=1, maximum_score=5, position=1),
+            ns(id="c2", weight=1, minimum_score=1, maximum_score=5, position=2),
+        ],
     )
     scorecards = [
         ns(
@@ -148,7 +159,9 @@ async def test_export_is_valid_csv_with_stable_fields_and_dangerous_cells() -> N
     assert rows[0]["team_id"] == "tm_01"
     assert rows[0]["project_title"] == "'+Unsafe Project"
     assert rows[0]["team_name"] == "'=Unsafe Team"
-    assert rows[0]["raw_weighted_score"] == "4.0"
+    assert rows[0]["raw_weighted_score"] == "75.0"
+    assert rows[0]["raw_weighted_total"] == "12.0"
+    assert rows[0]["normalized_contribution"] == "75.0"
     assert rows[1]["scorecard_status"] == "missing"
     assert session.committed
     assert session.added[0].action == "results.exported"

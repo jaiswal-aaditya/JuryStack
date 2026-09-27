@@ -25,6 +25,9 @@ async def test_results_export_authorization_and_csv_contract() -> None:
             assert (await client.get("/api/organizer/results.csv")).status_code == 403
             assert (await client.get("/api/organizer/audit-events")).status_code == 403
             assert (
+                await client.get("/api/organizer/events/evt_01/rankings")
+            ).status_code == 403
+            assert (
                 await client.post("/api/organizer/events/evt_01/results/publish")
             ).status_code == 403
     async with httpx.AsyncClient(base_url=base_url) as organizer:
@@ -37,9 +40,23 @@ async def test_results_export_authorization_and_csv_contract() -> None:
         assert {"project_id", "team_id", "track_id", "raw_weighted_score"} <= rows[
             0
         ].keys()
+        assert {
+            "raw_weighted_total",
+            "normalized_contribution",
+            "project_final_value",
+            "project_rank",
+        } <= rows[0].keys()
         progress = await organizer.get("/api/organizer/events/evt_01/progress")
         assert progress.status_code == 200
         assert progress.json()["summary"]["total_assignments"] > 0
+        rankings = await organizer.get("/api/organizer/events/evt_01/rankings")
+        assert rankings.status_code == 200
+        assert rankings.json()["method"] == "paired_overlap_median_bias"
+        constant = next(
+            item for item in rankings.json()["judges"] if item["judge_id"] == "jdg_07"
+        )
+        assert constant["raw_variance"] == 0
+        assert constant["fallback_used"] == "zero_variance_paired_median"
         publication = await organizer.post(
             "/api/organizer/events/evt_01/results/publish"
         )
