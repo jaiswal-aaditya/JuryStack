@@ -17,9 +17,25 @@ only on the Compose network. The frontend build contains all browser assets, so
 running containers make no internet requests and require no external accounts.
 
 Backend packages are divided into `auth`, `events`, `teams`, `projects`,
-`judging`, `results`, `audit`, and shared `core`. Future routes should validate
-transport data and call services; services own use cases and transaction
-boundaries; repositories own SQLAlchemy queries.
+`judging`, `results`, `audit`, and shared `core`. Routes validate transport data
+and call services; services own use cases, policy checks, audits, and transaction
+boundaries; repositories own SQLAlchemy queries. Tier 1 uses this split for
+event configuration, team invites, project drafts/submission, and the public
+gallery. Tier 2 packages remain empty.
+
+## Tier 1 request paths
+
+Public gallery and detail reads query only projects in `submitted` state.
+Authenticated participant writes resolve team membership in PostgreSQL before
+changing a project. Every create, edit, and submit use case loads the event and
+compares server UTC time with its open/close timestamps. Organizer event writes
+replace their nested configuration transactionally. Team invite tokens cross
+the API boundary once, while only their SHA-256 hashes and expirations persist.
+
+React uses TanStack Query for server state and keeps no authoritative role,
+ownership, or deadline decision. Nginx serves browser routes through the SPA
+fallback, while `/api` is always proxied to FastAPI, including the raw JSON
+gallery used by the official non-browser checker.
 
 ## Authentication and authorization
 

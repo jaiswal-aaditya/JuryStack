@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.fixtures import load_fixture, stable_user_id
 from app.core.seed import DEMO_TOKENS
 
-EXPECTED_REVISION = "20260927_0001"
+EXPECTED_REVISION = "20260927_0003"
 
 
 async def verify_seeded_database(database_url: str, fixture_path: Path) -> None:
@@ -79,10 +79,17 @@ async def verify_seeded_database(database_url: str, fixture_path: Path) -> None:
                 raise AssertionError("team_members accepted an orphan user reference")
 
             team_seven_projects = (
-                await connection.execute(
-                    text("SELECT id FROM projects WHERE team_id = 'tm_07' ORDER BY id")
+                (
+                    await connection.execute(
+                        text(
+                            "SELECT id FROM projects WHERE team_id = 'tm_07' "
+                            "ORDER BY id"
+                        )
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             assert team_seven_projects == ["prj_07", "prj_41"]
 
             project_rows = (

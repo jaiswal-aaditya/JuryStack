@@ -114,6 +114,8 @@ def build_seed_rows(fixture: FixtureData) -> dict[str, list[dict[str, Any]]]:
                 "id": event.id,
                 "slug": event_slug(event.name),
                 "name": event.name,
+                "starts_at": None,
+                "submissions_open": None,
                 "submissions_close": event.submissions_close,
             }
         ],

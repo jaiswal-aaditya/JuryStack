@@ -1,10 +1,10 @@
 # JuryStack
 
 JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
-2026. Its local three-service runtime, migration path, and idempotent official
-fixture import are verified. Product workflows and official acceptance routes
-remain intentionally unimplemented. Local authentication, opaque sessions,
-and backend authorization-policy foundations are also verified.
+2026. Tier 1 is implemented end to end: organizers configure events,
+participants form teams and submit projects before a server-enforced UTC
+deadline, and visitors browse a searchable, filterable public gallery. Tier 2
+is intentionally not started or claimed.
 
 ## Architecture
 
@@ -41,6 +41,23 @@ the intentionally local-only demo password `jurystack-local-demo`; the checker
 continues to use the deterministic Cookie headers printed during API startup.
 Do not reuse these credentials outside local development.
 
+## Tier 1 flows
+
+- Browse submitted projects at `/`, search by project or team text, filter by
+  track, and open public project details without signing in.
+- Participants use `/workspace` to create a team, issue an expiring single-use
+  invite, accept an invite, and manage drafts. Drafts support event-specific
+  questions and can be submitted once complete.
+- Organizers use `/organizer/events` to create or edit UTC dates, tracks,
+  prizes, and custom submission questions.
+- Project creation, edits, and submission are checked against the event window
+  using server UTC time. At or after closing, a direct request returns
+  `409 deadline_closed`.
+
+The fixture event is deliberately closed. To exercise the open-event path,
+create a future event as the organizer, then log in as a participant and form a
+team for it.
+
 Reset to a completely empty local database with:
 
 ```bash
@@ -65,15 +82,19 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-## Current status
+## Verification status
 
-T1 and T2 are targets, not current claims. `.dogfood.toml` therefore claims no
-tier yet and retains provisional checker routes/auth values for later
-implementation. The current generated `acceptance-report.txt` verifies no tier:
-the application shell is public, but the fixture gallery and T2 product routes
-do not exist yet. Its apparent late-submission pass is an incidental Nginx 405,
-not implemented deadline enforcement. See `PLAN.md` for requirement-level
-status.
+`.dogfood.toml` claims only T1. The generated `acceptance-report.txt` verifies
+all official T1 checks: the unauthenticated gallery returns `200`, fixture
+titles appear in its raw response, and the closed fixture event rejects the
+participant's direct project POST with a genuine deadline conflict. T2 routes
+remain absent and the checker reports their expected failures.
+
+Backend unit and live API checks, frontend lint/type/build/tests, pristine
+PostgreSQL fixture verification, Alembic drift checking, and the complete live
+Tier 1 lifecycle pass. The Playwright scenario is present, but this host cannot
+launch Chromium because `libnspr4.so` is unavailable; it remains runnable on a
+host with Playwright's operating-system dependencies installed.
 
 Runtime configuration is local-only and documented in `.env.example`. The
 default PostgreSQL credentials are intentionally development credentials and

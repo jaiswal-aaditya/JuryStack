@@ -67,18 +67,30 @@ class Session(Base):
 
 class Event(Base):
     __tablename__ = "events"
+    __table_args__ = (
+        CheckConstraint(
+            "submissions_open IS NULL OR submissions_open < submissions_close",
+            name="ck_events_submission_window",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(200))
+    starts_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submissions_open: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     submissions_close: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
-    tracks: Mapped[list[Track]] = relationship(back_populates="event")
-    prizes: Mapped[list[Prize]] = relationship(back_populates="event")
+    tracks: Mapped[list[Track]] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
+    )
+    prizes: Mapped[list[Prize]] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
+    )
     teams: Mapped[list[Team]] = relationship(back_populates="event")
     projects: Mapped[list[Project]] = relationship(back_populates="event")
     custom_questions: Mapped[list[CustomQuestion]] = relationship(
-        back_populates="event"
+        back_populates="event", cascade="all, delete-orphan"
     )
     rubrics: Mapped[list[Rubric]] = relationship(back_populates="event")
     judge_invitations: Mapped[list[JudgeInvitation]] = relationship(
@@ -156,6 +168,7 @@ class TeamInvite(Base):
 class Project(Base):
     __tablename__ = "projects"
     __table_args__ = (
+        CheckConstraint("status IN ('draft', 'submitted')", name="ck_projects_status"),
         Index("ix_projects_event_track", "event_id", "track_id"),
         Index("ix_projects_team", "team_id"),
     )
@@ -174,7 +187,7 @@ class Project(Base):
     team: Mapped[Team] = relationship(back_populates="projects")
     track: Mapped[Track] = relationship(back_populates="projects")
     custom_answers: Mapped[list[CustomAnswer]] = relationship(
-        back_populates="project"
+        back_populates="project", cascade="all, delete-orphan"
     )
     judge_assignments: Mapped[list[JudgeAssignment]] = relationship(
         back_populates="project"

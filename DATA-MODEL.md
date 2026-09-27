@@ -1,19 +1,19 @@
 # Data model
 
-Alembic revision `20260927_0001` creates the initial normalized PostgreSQL
-schema. SQLAlchemy 2 typed models declare bidirectional relationships; routes
-and services will use those relationships, while migrations remain the only
-production schema-management mechanism. `Base.metadata.create_all()` is not
-used.
+Alembic revisions through `20260927_0003` create the normalized PostgreSQL
+schema and add optional event start and submission-open timestamps. SQLAlchemy
+2 typed models declare bidirectional relationships; services use those
+relationships, while migrations remain the only production schema-management
+mechanism. `Base.metadata.create_all()` is not used.
 
 ## Relations and integrity
 
 | Area | Tables | Important integrity rules |
 |---|---|---|
 | Identity | `users`, `sessions` | Stable string IDs; unique normalized email and session-token hash; indexed roles and expirations; sessions reference users. |
-| Event setup | `events`, `tracks`, `prizes`, `custom_questions` | Unique event slug, track name per event, and question position per event; all children reference an event. |
-| Teams | `teams`, `team_members`, `team_invites` | `team_members` is an explicit many-to-many association with a composite primary key; invite hashes are unique. |
-| Submissions | `projects`, `custom_answers` | Projects reference event, team, and track; answers use a project/question composite key. There is intentionally no unique constraint on `projects.team_id`. |
+| Event setup | `events`, `tracks`, `prizes`, `custom_questions` | Unique event slug, track name per event, and question position per event; aware UTC `starts_at`, `submissions_open`, and required `submissions_close`; all children reference an event. |
+| Teams | `teams`, `team_members`, `team_invites` | `team_members` is an explicit many-to-many association with a composite primary key; only unique token hashes are stored; expiry is UTC and successful acceptance deletes the single-purpose invite. |
+| Submissions | `projects`, `custom_answers` | Projects reference event, team, and track; drafts have no `submitted_at`, while submission atomically sets `submitted` and the server timestamp; answers use a project/question composite key. There is intentionally no unique constraint on `projects.team_id`. |
 | Judging | `rubrics`, `rubric_criteria`, `judge_invitations`, `judge_track_eligibility`, `judge_assignments`, `scorecards`, `criterion_scores` | Versioned rubrics, positive criterion weights and bounded score ranges; eligibility is an explicit judge/track association; assignments are unique per judge/project; scorecards are unique per judge/project/rubric; criterion scores use a composite key. |
 | Audit | `audit_events` | Stable IDs and indexed event, action, and occurrence time; application services will enforce append-only writes. |
 
@@ -21,6 +21,16 @@ Foreign keys, uniqueness constraints, checks, and lookup indexes are defined in
 both SQLAlchemy metadata and the reviewed migration. Timestamp columns use
 PostgreSQL `timestamptz`; fixture parsing rejects malformed shapes and retains
 aware UTC values at the API/import boundary.
+
+## Tier 1 lifecycle invariants
+
+Organizer event writes replace the ordered event configuration in one
+transaction. Team creation adds the creator as the first member. Invite tokens
+are returned only when created, stored only as SHA-256 hashes, expire after a
+bounded interval, and are deleted after one successful use. Project ownership
+is derived from `team_members`; direct requests by other participants receive
+`403`. Only submitted projects appear in public queries, and required custom
+questions are enforced when moving a draft to `submitted`.
 
 ## Official fixture import
 

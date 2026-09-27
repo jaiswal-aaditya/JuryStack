@@ -9,17 +9,17 @@ exists; **verified** is reserved for behavior exercised successfully.
 | Tier / requirement | Backend module / endpoint | Frontend page | PostgreSQL migration / constraint | Test | Status |
 |---|---|---|---|---|---|
 | T1 local login, logout, current actor, opaque sessions | `auth`; `/api/auth/login`, `/logout`, `/me`; reusable role/owner/event/track/assignment policies | `/login`, account menu | `users`, `sessions`; role check, unique token hash and expiry index | `test_auth.py`; `auth.test.tsx`; live rotation/logout checks | Verified |
-| T1 organizer creates/configures event | `events`; `/api/events` | `/organizer/events/*` | `events`; unique slug, UTC date checks | event service/API tests | Scaffolded |
-| T1 tracks, prizes, custom questions | `events`; nested event resources | event setup pages | `tracks`, `prizes`, `custom_questions`; event FKs/order constraints | event configuration tests | Scaffolded |
-| T1 form and manage teams/invites | `teams`; `/api/teams`, `/invites` | `/teams/*` | `teams`, `team_members`, `team_invites`; membership/invite uniqueness | team ownership and invite tests | Scaffolded |
-| T1 project draft/create/edit | `projects`; `/api/projects` | `/projects/new`, `/projects/:id/edit` | `projects`, `custom_answers`; ownership/FK/URL checks | project service/API/form tests | Scaffolded |
-| T1 server-side UTC deadline enforcement | `projects` submission service | submission status messaging | event close timestamp; transactional state update | deadline boundary + adversarial direct HTTP tests | Not started |
-| T1 public browsable/filterable gallery | `projects`; `/api/public/projects` | `/projects` | project publication/status indexes | public/filter/pagination tests | Scaffolded |
+| T1 organizer creates/configures event | `events`; `/api/events` | `/organizer/events` | `events`; unique slug and aware ordered UTC dates | schema and live create/edit tests | Verified |
+| T1 tracks, prizes, custom questions | `events`; nested configuration | event configuration form | `tracks`, `prizes`, `custom_questions`; event FKs/order constraints | live nested configuration test | Verified |
+| T1 form and manage teams/invites | `teams`; `/api/teams`, `/team-invites` | `/workspace` | `teams`, `team_members`, `team_invites`; membership/hash uniqueness | live nonmember/reuse/accept tests | Verified |
+| T1 project draft/create/edit | `projects`; `/api/projects` | `/workspace/projects/new`, edit route | `projects`, `custom_answers`; ownership/FK/URL checks | live ownership/custom-answer lifecycle | Verified |
+| T1 server-side UTC deadline enforcement | `projects` service | deadline-closed form state | event open/close timestamps; transactional state update | exact boundary and direct late HTTP tests | Verified |
+| T1 public browsable/filterable gallery | `projects`; `/api/public/projects` | `/`, `/projects/:id` | project status/event-track indexes | live public/detail/search/filter tests | Verified |
 | T1 fixture import is idempotent and exact | `core.fixtures`, `core.seed` startup command | n/a | all fixture-backed tables; stable string IDs, FKs, association tables, conflict-no-op transactional import | `test_seed.py`; live `test_database_integration.py`; two-start count check | Verified |
 | T1 offline `docker compose up` | process startup/migrations/seeding | Nginx application shell | named PostgreSQL volume + Alembic | clean-volume startup smoke | Verified |
-| **run.py 1: public gallery returns 200 unauthenticated** | `GET /api/public/projects` (planned `.dogfood.toml` route) | `/projects` | `projects` publication index | official `run.py`: “gallery is public” | Not started |
-| **run.py 2: raw gallery includes a first-three fixture title** | `GET /api/public/projects` | `/projects` | fixture projects, preserving titles | official `run.py`: “project from fixtures shown” | Not started |
-| **run.py 3: participant late submission returns 4xx** | `POST /api/projects` (planned) | `/projects/new` | event close time + project state | official `run.py`: “closed event refuses submissions” | Not started |
+| **run.py 1: public gallery returns 200 unauthenticated** | `GET /api/public/projects` | `/` | `projects` publication index | official `run.py`: “gallery is public” | Verified |
+| **run.py 2: raw gallery includes a first-three fixture title** | `GET /api/public/projects` | `/` | fixture projects, preserving titles | official `run.py`: “project from fixtures shown” | Verified |
+| **run.py 3: participant late submission returns 4xx** | `POST /api/projects` | project editor | event close time + project state | official `run.py`: “closed event refuses submissions” | Verified |
 | T2 invite judges and track eligibility | `judging`; `/api/judge-invitations` | `/organizer/judges` | `judge_invitations`, `judge_track_eligibility`; token hash/uniqueness | invitation and track-scope tests | Scaffolded |
 | T2 assign judges to projects | `judging`; `/api/judge-assignments` | `/organizer/assignments` | `judge_assignments`; unique judge/project identity | assignment authorization tests | Scaffolded |
 | T2 weighted versioned rubric | `judging`; `/api/rubrics` | `/organizer/rubric` | `rubrics`, `rubric_criteria`; weight/range/version checks | weight/range/version tests | Scaffolded |
@@ -56,8 +56,7 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 ## Next vertical slice
 
-Expose the public gallery endpoint from the seeded relational data and run
-official checks 1–2.
+Tier 1 is complete. Stop here; begin Tier 2 only under a separate explicit task.
 
 ## Authentication foundation milestone (2026-09-27)
 
@@ -120,3 +119,30 @@ official checks 1–2.
   Nginx method rejection, not deadline enforcement, so that requirement remains
   not started.
 - T1/T2 product routes remain unimplemented and no tier is claimed.
+
+## Tier 1 vertical-slice milestone (2026-09-27)
+
+- Added organizer-only event creation and editing for aware UTC dates, tracks,
+  prizes, and ordered required/optional custom questions. Alembic revision
+  `20260927_0003` adds optional event-start and submission-open timestamps.
+- Added participant team creation, membership-backed authorization, and
+  expiring single-use invite tokens stored only as hashes. Nonmembers cannot
+  issue invites and consumed tokens cannot be reused.
+- Added team-owned project drafts, custom answers, submission state and server
+  timestamps, URL and event/track validation, and server-side window checks on
+  create, edit, and submit. The close instant is exclusive: `now >= close`
+  returns `409 deadline_closed` before the checker's sparse late payload can be
+  rejected for an unrelated missing field.
+- Added the public raw-JSON gallery and detail routes plus search and track
+  filters. The React application now provides gallery/detail, team/invite,
+  draft/edit/submit, event configuration, and explicit loading, empty, error,
+  forbidden, validation, and deadline-closed states.
+- Focused tests cover invalid dates, exact open/close boundaries, cross-team
+  edits, nonmember invite issuance, invite reuse, required and persisted custom
+  answers, late direct requests, and gallery visibility/search/filtering.
+- Clean-volume Docker startup, pristine database integrity, Alembic drift,
+  backend tests, frontend lint/build/tests, live API lifecycle, and all official
+  T1 checks pass. Playwright cannot launch on this host because `libnspr4.so` is
+  unavailable; the scenario and Chromium download are otherwise present.
+- `.dogfood.toml` now claims T1 only. Tier 2 remains unimplemented and its four
+  checker probes honestly return `404`.

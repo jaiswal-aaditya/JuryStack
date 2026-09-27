@@ -2,8 +2,8 @@
 base_url = "http://localhost:8080"
 
 [tiers]
-claimed = []
-pitch = "Verified JuryStack application scaffold; product tiers are not yet implemented."
+claimed = ["T1"]
+pitch = "A complete self-hosted Tier 1 event, team, submission, deadline, and gallery workflow."
 
 [auth]
 # Whatever header proves you are this role. A cookie, a
