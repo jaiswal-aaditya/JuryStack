@@ -1267,29 +1267,39 @@
   font-size: 0.82rem;
   font-weight: 700;
 }
+.assignments-page {
+  display: grid;
+  gap: 1.15rem;
+}
+.assignments-page .page-heading {
+  margin-bottom: 0;
+  align-items: center;
+}
 .assignment-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  gap: 1.1rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .assignment-card {
   display: flex;
+  min-width: 0;
   min-height: 18rem;
   flex-direction: column;
   align-items: flex-start;
-  padding: 1.35rem;
+  padding: 1.25rem;
 }
 .assignment-card h2 {
-  margin: 1rem 0 0;
+  margin: 0.7rem 0 0;
   font-size: 1.2rem;
 }
 .assignment-card > p {
-  margin: 0.75rem 0 0;
+  margin: 0.4rem 0 0;
   color: var(--text-muted);
   font-size: 0.9rem;
+  line-height: 1.55;
 }
 .judge-workload {
   display: grid;
@@ -1413,7 +1423,7 @@
 .assignment-card-progress {
   display: grid;
   width: 100%;
-  margin-top: 0.85rem;
+  margin-top: 0.8rem;
   color: var(--text-muted);
   font-size: 0.7rem;
 }
@@ -1427,15 +1437,20 @@
   gap: 0.4rem;
 }
 .assignment-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   margin-top: auto;
-  gap: 0.65rem;
-  padding-top: 1.25rem;
+  gap: 0.55rem;
+  padding-top: 1.1rem;
 }
 .assignment-actions .button {
-  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+}
+.assignment-actions .button:last-child {
+  grid-column: 1 / -1;
 }
 .project-detail {
   width: 100%;
@@ -1813,7 +1828,10 @@
     grid-template-columns: 1fr;
   }
   .assignment-actions {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+  .assignment-actions .button:last-child {
+    grid-column: auto;
   }
   .project-detail-grid {
     grid-template-columns: 1fr;
