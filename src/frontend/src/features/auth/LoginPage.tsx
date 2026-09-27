@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { z } from 'zod'
 
 import { useAuth } from './context'
+import { Brand } from '../../shared/Brand'
 
 const loginSchema = z.object({
   email: z.string().trim().email('Enter a valid email address.'),
@@ -11,10 +12,38 @@ const loginSchema = z.object({
 })
 type LoginFields = z.infer<typeof loginSchema>
 
+function EyeIcon({ hidden }: { hidden: boolean }) {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M3 12s3.25-5 9-5 9 5 9 5-3.25 5-9 5-9-5-9-5Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="2.25"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      {hidden && (
+        <path
+          d="m4 4 16 16"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="1.7"
+        />
+      )}
+    </svg>
+  )
+}
+
 export function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const {
     register,
     handleSubmit,
@@ -36,63 +65,107 @@ export function LoginPage() {
     }
     try {
       await login(parsed.data)
-      await navigate('/')
+      await navigate('/dashboard')
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : 'Login failed.')
     }
   })
 
   return (
-    <section className="mx-auto max-w-md" aria-labelledby="login-title">
-      <h1 id="login-title" className="text-3xl font-semibold">
-        Log in to JuryStack
-      </h1>
-      <form className="mt-8 space-y-5" noValidate onSubmit={submit}>
-        <div>
-          <label className="block text-sm font-medium" htmlFor="email">
-            Email
-          </label>
-          <input
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register('email')}
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-300">{errors.email.message}</p>
-          )}
+    <section className="auth-page" aria-labelledby="login-title">
+      <div className="auth-intro">
+        <Brand linked={false} large />
+        <p>
+          A modern, open-source, self-hostable platform for the complete
+          hackathon submission and judging lifecycle.
+        </p>
+        <ul aria-label="JuryStack benefits">
+          <li>
+            <span>✓</span> Focused judging workflows
+          </li>
+          <li>
+            <span>✓</span> Private, role-scoped access
+          </li>
+          <li>
+            <span>✓</span> Fully self-hosted
+          </li>
+        </ul>
+      </div>
+      <div className="auth-card">
+        <div className="auth-card-brand">
+          <Brand linked={false} />
         </div>
-        <div>
-          <label className="block text-sm font-medium" htmlFor="password">
-            Password
-          </label>
-          <input
-            className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            {...register('password')}
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-300">
-              {errors.password.message}
+        <p className="auth-platform-copy">
+          Manage teams, submissions, judging, and results in one focused local
+          workspace.
+        </p>
+        <p className="eyebrow">Welcome back</p>
+        <h1 id="login-title">Log in to your account</h1>
+        <p className="auth-subtitle">
+          Use the local credentials provided by your event organizer.
+        </p>
+        <form className="auth-form" noValidate onSubmit={submit}>
+          <div className="field-group">
+            <label className="field-label" htmlFor="email">
+              Email
+            </label>
+            <input
+              className="input"
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.org"
+              aria-invalid={Boolean(errors.email)}
+              {...register('email')}
+            />
+            {errors.email && (
+              <p className="field-error">{errors.email.message}</p>
+            )}
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
+            <div className="password-field">
+              <input
+                className="input"
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                aria-invalid={Boolean(errors.password)}
+                {...register('password')}
+              />
+              <button
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="password-toggle"
+                onClick={() => setShowPassword((visible) => !visible)}
+                type="button"
+              >
+                <EyeIcon hidden={showPassword} />
+              </button>
+            </div>
+            {errors.password && (
+              <p className="field-error">{errors.password.message}</p>
+            )}
+          </div>
+          {requestError && (
+            <p role="alert" className="alert alert-error">
+              {requestError}
             </p>
           )}
-        </div>
-        {requestError && (
-          <p role="alert" className="text-sm text-red-300">
-            {requestError}
-          </p>
-        )}
-        <button
-          className="w-full rounded bg-cyan-500 px-4 py-2 font-medium text-slate-950 disabled:opacity-60"
-          disabled={isSubmitting}
-          type="submit"
-        >
-          {isSubmitting ? 'Logging in…' : 'Log in'}
-        </button>
-      </form>
+          <button
+            className="button button-primary button-full"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            {isSubmitting ? 'Logging in…' : 'Log in'}
+          </button>
+        </form>
+        <p className="auth-note">
+          New judge accounts are created through secure invitation links. Public
+          signup is disabled to protect event roles.
+        </p>
+      </div>
     </section>
   )
 }

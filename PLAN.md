@@ -61,6 +61,48 @@ Stop here. Organizer progress UI, weighted raw scoring, normalization, and CSV
 export require separate explicit tasks; Tier 2 remains unclaimed until those
 requirements and the final official CSV check are complete.
 
+## Frontend UI/UX modernization milestone (2026-09-27)
+
+- Replaced the dark-only prototype shell with a restrained blue design system,
+  responsive role-aware navigation, the provided logo and HTML wordmark, and
+  light/dark/system themes. System is the default; explicit browser preferences
+  persist locally, and an inline pre-render resolver avoids a wrong-theme flash.
+- Added real, API-backed role dashboards for participants, judges, organizers,
+  and admins, plus a read-only profile surface using only `/api/auth/me` data.
+  Navigation exposes only implemented pages appropriate to the current role.
+- Redesigned the public gallery, login, participant workspace, judge invitation,
+  assignments, organizer judging setup, and private scorecard workflow with
+  consistent inputs, status badges, loading/empty/error states, responsive
+  layouts, clearer focus states, and reduced-motion support.
+- The final precision pass adds contract-safe gallery skeletons, searchable
+  project/team controls, track pill filters, project metadata panels, native SVG
+  password controls, role-ring avatars, copyable single-use invite links, and
+  client-side assignment filtering without changing query keys or API calls.
+- Follow-up polish moves the System/Light/Dark control into the global header
+  for anonymous and authenticated users, removes the duplicate account-menu
+  control, adopts neutral slate/zinc surfaces with a calmer indigo accent,
+  integrates the official platform definition into the gallery/login/footer,
+  adds `/` search focus and clear behavior, counted track pills, copied-state
+  invite buttons, and richer assignment metadata/actions.
+- Added password visibility controls and retained the only supported account
+  creation path: a secure single-use judge invitation. There is no public or
+  administrator account-creation API, so no fake signup route or client-side
+  role grant was added.
+- Added an accessible final-evaluation confirmation dialog, criterion progress,
+  explicit draft/submitted/read-only states, and duplicate-submit prevention.
+  The underlying draft and submit endpoints and scoring behavior are unchanged.
+- No backend, migration, auth, authorization, checker route, fixture, Docker, or
+  request/response contract changed. Frontend tests now cover theme preference
+  persistence and final scorecard confirmation in addition to existing flows.
+- Verification: frontend ESLint and Prettier passed; Vitest passed 7 tests;
+  TypeScript/Vite production build passed; backend Pytest passed 25 with 5
+  expected environment-gated skips. After `docker compose down -v` and a clean
+  `docker compose up --build -d`, all 4 live Tier 1/judging/scorecard tests
+  passed. The official checker still verifies T1 plus all three judge-isolation
+  probes; the deliberately deferred CSV check remains `404`, so T2 remains
+  unclaimed. Playwright still cannot launch on this host because `libnspr4.so`
+  is unavailable.
+
 ## Authentication foundation milestone (2026-09-27)
 
 - Added local email/password login with Argon2id, random opaque HttpOnly

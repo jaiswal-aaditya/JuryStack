@@ -14,24 +14,58 @@ export function ProjectDetailPage() {
   if (project.error) return <ErrorState error={project.error} />
   if (!project.data) return null
   return (
-    <article className="max-w-3xl">
-      <Link className="text-cyan-300" to="/">
-        ← Back to gallery
-      </Link>
-      <p className="mt-8 text-sm uppercase tracking-wide text-cyan-400">
-        {project.data.track_name}
-      </p>
-      <h1 className="mt-2 text-4xl font-bold">{project.data.title}</h1>
-      <p className="mt-2 text-slate-400">Built by {project.data.team_name}</p>
-      <p className="mt-8 text-lg text-slate-200">{project.data.summary}</p>
-      <a
-        className="mt-8 inline-block rounded bg-cyan-500 px-4 py-2 font-medium text-slate-950"
-        href={project.data.repo_url}
-        rel="noreferrer"
-        target="_blank"
-      >
-        View repository
-      </a>
+    <article className="project-detail">
+      <nav aria-label="Breadcrumb" className="breadcrumb">
+        <Link to="/">Projects</Link>
+        <span aria-hidden="true">/</span>
+        <span>{project.data.title}</span>
+      </nav>
+      <div className="project-detail-grid">
+        <div className="project-story">
+          <span className="badge badge-blue">{project.data.track_name}</span>
+          <h1>{project.data.title}</h1>
+          <p className="project-byline">
+            Built by <strong>{project.data.team_name}</strong>
+          </p>
+          <div className="project-summary-block">
+            <p className="eyebrow">About the project</p>
+            <p>{project.data.summary}</p>
+          </div>
+        </div>
+        <aside className="panel project-sidebar" aria-label="Project details">
+          <h2>Project details</h2>
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className="badge badge-green">Submitted</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Track</dt>
+              <dd>{project.data.track_name}</dd>
+            </div>
+            <div>
+              <dt>Team</dt>
+              <dd>{project.data.team_name}</dd>
+            </div>
+            {project.data.submitted_at && (
+              <div>
+                <dt>Submitted</dt>
+                <dd>{new Date(project.data.submitted_at).toLocaleString()}</dd>
+              </div>
+            )}
+          </dl>
+          <a
+            className="button button-primary button-full"
+            href={project.data.repo_url}
+            rel="noreferrer"
+            target="_blank"
+          >
+            View repository <span aria-hidden="true">↗</span>
+          </a>
+        </aside>
+      </div>
     </article>
   )
 }

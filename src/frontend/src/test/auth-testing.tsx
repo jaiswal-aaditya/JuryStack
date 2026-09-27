@@ -16,7 +16,7 @@ export function renderLoginFlow() {
         <MemoryRouter initialEntries={['/login']}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<h1>Portal home</h1>} />
+            <Route path="/dashboard" element={<h1>Portal home</h1>} />
           </Routes>
         </MemoryRouter>
       </AuthProvider>

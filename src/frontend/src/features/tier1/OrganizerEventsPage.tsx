@@ -118,14 +118,20 @@ export function OrganizerEventsPage() {
   if (query.error) return <ErrorState error={query.error} />
   return (
     <section>
-      <p className="text-sm uppercase tracking-widest text-cyan-400">
-        Organizer
-      </p>
-      <h1 className="mt-2 text-3xl font-bold">Event configuration</h1>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Organizer</p>
+          <h1>Event configuration</h1>
+          <p>
+            Manage event identity, submission windows, tracks, prizes, and
+            custom questions.
+          </p>
+        </div>
+      </div>
       <div className="mt-8 grid gap-8 lg:grid-cols-[18rem_1fr]">
-        <aside>
+        <aside className="event-selector">
           <button
-            className="w-full rounded border border-cyan-500 px-4 py-2 text-cyan-300"
+            className="button button-primary button-full"
             onClick={() => {
               setSelected(undefined)
               setForm(empty)
@@ -144,7 +150,8 @@ export function OrganizerEventsPage() {
             {query.data?.map((event) => (
               <li key={event.id}>
                 <button
-                  className="w-full rounded border border-slate-800 p-3 text-left hover:bg-slate-900"
+                  aria-pressed={selected === event.id}
+                  className="event-selector-button"
                   onClick={() => {
                     setSelected(event.id)
                     setForm(fromEvent(event))
@@ -159,7 +166,7 @@ export function OrganizerEventsPage() {
           </ul>
         </aside>
         <form
-          className="space-y-5 rounded-xl border border-slate-800 bg-slate-900 p-6"
+          className="event-form panel"
           onSubmit={(event) => {
             event.preventDefault()
             mutation.mutate()
@@ -259,7 +266,7 @@ export function OrganizerEventsPage() {
             />
           </label>
           <button
-            className="rounded bg-cyan-500 px-4 py-2 font-medium text-slate-950 disabled:opacity-50"
+            className="button button-primary"
             disabled={mutation.isPending}
           >
             Save configuration

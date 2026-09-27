@@ -9,6 +9,7 @@ import {
   type ScorecardWorkspace,
 } from './api'
 import { ErrorState, Loading } from '../../shared/AsyncState'
+import { ConfirmDialog } from '../../shared/ConfirmDialog'
 
 function JudgeScorecardForm({
   projectId,
@@ -41,6 +42,7 @@ function JudgeScorecardForm({
   )
   const [comment, setComment] = useState(workspace.scorecard?.comment ?? '')
   const [message, setMessage] = useState('')
+  const [confirming, setConfirming] = useState(false)
 
   const draftMutation = useMutation({
     mutationFn: () =>
@@ -75,38 +77,75 @@ function JudgeScorecardForm({
   })
 
   const submitted = workspace.scorecard?.status === 'submitted'
+  const completedCount = criteria.filter(
+    (criterion) => scores[criterion.criterion_id] !== '',
+  ).length
+  const complete = completedCount === criteria.length
   const mutationError = draftMutation.error ?? submitMutation.error
   return (
-    <section className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <Link className="text-sm text-cyan-300" to="/judge/assignments">
+    <section className="scorecard-page">
+      <div className="scorecard-heading">
+        <Link className="back-link" to="/judge/assignments">
           ← Assigned projects
         </Link>
-        <p className="mt-5 text-sm uppercase tracking-widest text-cyan-400">
-          {workspace.project.track_name} · Rubric version{' '}
-          {workspace.rubric.version}
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">{workspace.project.title}</h1>
-        <p className="mt-3 text-slate-400">{workspace.project.summary}</p>
-        <p className="mt-3 text-sm text-slate-400">
+        <div className="scorecard-title-row">
+          <div>
+            <p className="eyebrow">
+              {workspace.project.track_name} · Rubric v
+              {workspace.rubric.version}
+            </p>
+            <h1>{workspace.project.title}</h1>
+            <p>{workspace.project.summary}</p>
+          </div>
+          <span
+            className={`badge ${submitted ? 'badge-green' : 'badge-amber'}`}
+          >
+            {submitted
+              ? 'Submitted · read-only'
+              : workspace.scorecard
+                ? 'Draft saved'
+                : 'Not started'}
+          </span>
+        </div>
+      </div>
+
+      <div className="scorecard-progress panel">
+        <div>
+          <span>Evaluation progress</span>
+          <strong>
+            {completedCount} of {criteria.length} criteria scored
+          </strong>
+        </div>
+        <div
+          className="progress-track"
+          aria-label={`${completedCount} of ${criteria.length} criteria scored`}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={criteria.length}
+          aria-valuenow={completedCount}
+        >
+          <span
+            style={{
+              width: `${criteria.length ? (completedCount / criteria.length) * 100 : 0}%`,
+            }}
+          />
+        </div>
+        <p>
           {submitted
-            ? 'Submitted scorecards are read-only.'
-            : 'Save a partial draft at any time. Every criterion is required to submit.'}
+            ? 'This evaluation is final and cannot be changed.'
+            : 'Save a partial draft at any time. Every criterion is required for final submission.'}
         </p>
       </div>
 
       {message && (
-        <p
-          className="rounded border border-emerald-800 bg-emerald-950 p-3 text-emerald-200"
-          role="status"
-        >
+        <p className="alert alert-success" role="status">
           {message}
         </p>
       )}
       {mutationError && <ErrorState error={mutationError} />}
 
       <form
-        className="space-y-5"
+        className="scorecard-form"
         onSubmit={(event) => {
           event.preventDefault()
           draftMutation.mutate()
@@ -114,68 +153,78 @@ function JudgeScorecardForm({
       >
         {criteria.map((criterion) => (
           <fieldset
-            className="rounded-xl border border-slate-800 bg-slate-900 p-5"
+            className="criterion-card"
             disabled={submitted}
             key={criterion.criterion_id}
           >
             <label
-              className="block font-semibold"
+              className="criterion-label"
               htmlFor={`score-${criterion.criterion_id}`}
             >
               {criterion.label}
             </label>
             {criterion.description && (
-              <p className="mt-1 text-sm text-slate-400">
-                {criterion.description}
-              </p>
+              <p className="criterion-description">{criterion.description}</p>
             )}
-            <p className="mt-1 text-xs text-slate-500">
-              {criterion.minimum_score}–{criterion.maximum_score} · weight{' '}
-              {criterion.weight}
-            </p>
-            <input
-              className="mt-3 w-28 rounded border border-slate-700 bg-slate-950 px-3 py-2"
-              id={`score-${criterion.criterion_id}`}
-              max={criterion.maximum_score}
-              min={criterion.minimum_score}
-              onChange={(event) =>
-                setScores((current) => ({
-                  ...current,
-                  [criterion.criterion_id]: event.target.value,
-                }))
-              }
-              required={false}
-              type="number"
-              value={scores[criterion.criterion_id] ?? ''}
-            />
+            <div className="criterion-meta">
+              <span>
+                Score range {criterion.minimum_score}–{criterion.maximum_score}
+              </span>
+              <span>Weight {criterion.weight}</span>
+            </div>
+            <div className="score-input-wrap">
+              <input
+                className="score-input"
+                id={`score-${criterion.criterion_id}`}
+                max={criterion.maximum_score}
+                min={criterion.minimum_score}
+                onChange={(event) =>
+                  setScores((current) => ({
+                    ...current,
+                    [criterion.criterion_id]: event.target.value,
+                  }))
+                }
+                required={false}
+                type="number"
+                value={scores[criterion.criterion_id] ?? ''}
+              />
+              <span>/ {criterion.maximum_score}</span>
+            </div>
           </fieldset>
         ))}
 
-        <label className="block font-semibold" htmlFor="scorecard-comment">
-          Private judge comment
-        </label>
-        <textarea
-          className="min-h-32 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-          disabled={submitted}
-          id="scorecard-comment"
-          maxLength={10000}
-          onChange={(event) => setComment(event.target.value)}
-          value={comment}
-        />
+        <div className="panel comment-panel">
+          <label className="criterion-label" htmlFor="scorecard-comment">
+            Private judge comment
+          </label>
+          <p className="criterion-description">
+            Visible only through organizer-authorized review tools; never to
+            peer judges.
+          </p>
+          <textarea
+            disabled={submitted}
+            id="scorecard-comment"
+            maxLength={10000}
+            onChange={(event) => setComment(event.target.value)}
+            value={comment}
+          />
+        </div>
 
         {!submitted && (
-          <div className="flex flex-wrap gap-3">
+          <div className="scorecard-actions">
             <button
-              className="rounded border border-cyan-500 px-4 py-2 text-cyan-300 disabled:opacity-50"
+              className="button button-secondary"
               disabled={draftMutation.isPending || submitMutation.isPending}
               type="submit"
             >
               Save draft
             </button>
             <button
-              className="rounded bg-cyan-500 px-4 py-2 font-medium text-slate-950 disabled:opacity-50"
-              disabled={draftMutation.isPending || submitMutation.isPending}
-              onClick={() => submitMutation.mutate()}
+              className="button button-primary"
+              disabled={
+                !complete || draftMutation.isPending || submitMutation.isPending
+              }
+              onClick={() => setConfirming(true)}
               type="button"
             >
               Submit scorecard
@@ -183,6 +232,19 @@ function JudgeScorecardForm({
           </div>
         )}
       </form>
+      <ConfirmDialog
+        open={confirming}
+        title="Submit this evaluation?"
+        description="All scores and comments will be saved, then this scorecard will be locked. This action cannot be undone."
+        confirmLabel="Submit final evaluation"
+        pending={submitMutation.isPending}
+        onCancel={() => setConfirming(false)}
+        onConfirm={() =>
+          submitMutation.mutate(undefined, {
+            onSuccess: () => setConfirming(false),
+          })
+        }
+      />
     </section>
   )
 }

@@ -12,40 +12,56 @@ export function JudgeAssignmentsPage() {
   if (query.isLoading) return <Loading label="Loading your assignments…" />
   if (query.error) return <ErrorState error={query.error} />
   return (
-    <section>
-      <p className="text-sm uppercase tracking-widest text-cyan-400">Judge</p>
-      <h1 className="mt-2 text-3xl font-bold">Your assigned projects</h1>
-      <p className="mt-3 text-slate-400">
-        Only assignments in your eligible tracks are shown.
-      </p>
+    <section className="assignments-page">
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Judge workspace</p>
+          <h1>Your assigned projects</h1>
+          <p>
+            Evaluate only projects in your eligible tracks. Your scorecards
+            remain private from peer judges.
+          </p>
+        </div>
+        <span className="badge badge-blue">
+          {query.data?.length ?? 0} assigned
+        </span>
+      </div>
       {query.data?.length === 0 && (
         <div className="mt-8">
           <EmptyState>No projects have been assigned to you.</EmptyState>
         </div>
       )}
-      <ul className="mt-8 grid gap-5 md:grid-cols-2">
+      <ul className="assignment-grid">
         {query.data?.map((project) => (
-          <li
-            className="rounded-xl border border-slate-800 bg-slate-900 p-5"
-            key={project.id}
-          >
-            <p className="text-sm text-cyan-300">{project.track_name}</p>
-            <h2 className="mt-2 text-xl font-semibold">{project.title}</h2>
-            <p className="mt-3 text-slate-300">{project.summary}</p>
-            <a
-              className="mt-4 inline-block text-cyan-300"
-              href={project.repo_url}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Open repository
-            </a>
-            <Link
-              className="ml-5 mt-4 inline-block font-medium text-cyan-300"
-              to={`/judge/projects/${project.id}/score`}
-            >
-              Open scorecard
-            </Link>
+          <li className="assignment-card panel" key={project.id}>
+            <div className="assignment-badges">
+              <span className="badge badge-blue">{project.track_name}</span>
+              <span className="badge badge-green">Submitted</span>
+            </div>
+            <h2>{project.title}</h2>
+            <p>{project.summary}</p>
+            <div className="assignment-actions">
+              <Link
+                className="button button-secondary"
+                to={`/projects/${project.id}`}
+              >
+                View submission
+              </Link>
+              <a
+                className="button button-secondary"
+                href={project.repo_url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Open repository
+              </a>
+              <Link
+                className="button button-primary"
+                to={`/judge/projects/${project.id}/score`}
+              >
+                Open scorecard
+              </Link>
+            </div>
           </li>
         ))}
       </ul>

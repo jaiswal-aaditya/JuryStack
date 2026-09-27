@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 
 import { JudgeAssignmentsPage } from '../features/judging/JudgeAssignmentsPage'
@@ -36,4 +36,4 @@ export function renderJudgeScorecard(projectId = 'prj_07') {
   )
 }
 
-export { fireEvent, screen }
+export { fireEvent, screen, waitFor }

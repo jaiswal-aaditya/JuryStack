@@ -14,6 +14,7 @@ import {
 } from './api'
 import { events, gallery } from '../tier1/api'
 import { EmptyState, ErrorState, Loading } from '../../shared/AsyncState'
+import { ConfirmDialog } from '../../shared/ConfirmDialog'
 
 const seededCriteria = [
   'Functionality|How completely it works|1|5|1',
@@ -81,10 +82,13 @@ export function OrganizerJudgingPage() {
   const [email, setEmail] = useState('')
   const [trackIds, setTrackIds] = useState<string[]>([])
   const [inviteLink, setInviteLink] = useState('')
+  const [inviteCopied, setInviteCopied] = useState(false)
   const [judgeId, setJudgeId] = useState('')
   const [projectId, setProjectId] = useState('')
   const [reviewCount, setReviewCount] = useState(3)
   const [message, setMessage] = useState('')
+  const [removalId, setRemovalId] = useState<string | null>(null)
+  const [assignmentSearch, setAssignmentSearch] = useState('')
 
   const refreshAssignments = () =>
     queryClient.invalidateQueries({
@@ -112,6 +116,7 @@ export function OrganizerJudgingPage() {
       setInviteLink(
         `${window.location.origin}${invitation.invitation_url ?? ''}`,
       )
+      setInviteCopied(false)
       setMessage('Local single-use judge invitation created.')
       await queryClient.invalidateQueries({
         queryKey: ['judge-invitations', selectedEventId],
@@ -148,6 +153,15 @@ export function OrganizerJudgingPage() {
       ),
     [projectQuery.data, selectedEventId, selectedJudge],
   )
+  const filteredAssignments = useMemo(() => {
+    const term = assignmentSearch.trim().toLocaleLowerCase()
+    if (!term) return assignmentQuery.data ?? []
+    return (assignmentQuery.data ?? []).filter((assignment) =>
+      `${assignment.judge_name} ${assignment.project_title} ${assignment.track_name}`
+        .toLocaleLowerCase()
+        .includes(term),
+    )
+  }, [assignmentQuery.data, assignmentSearch])
   const loading =
     eventQuery.isLoading ||
     rubricQuery.isLoading ||
@@ -175,28 +189,33 @@ export function OrganizerJudgingPage() {
     removalMutation.error
   return (
     <section className="space-y-10">
-      <div>
-        <p className="text-sm uppercase tracking-widest text-cyan-400">
-          Organizer
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">Judging setup</h1>
-        <select
-          aria-label="Event"
-          className="mt-5 rounded border border-slate-700 bg-slate-950 px-3 py-2"
-          onChange={(event) => {
-            setEventId(event.target.value)
-            setTrackIds([])
-            setJudgeId('')
-            setProjectId('')
-          }}
-          value={selectedEventId}
-        >
-          {eventQuery.data?.map((event) => (
-            <option key={event.id} value={event.id}>
-              {event.name}
-            </option>
-          ))}
-        </select>
+      <div className="page-heading">
+        <div>
+          <p className="eyebrow">Organizer</p>
+          <h1 className="mt-2 text-3xl font-bold">Judging setup</h1>
+          <p>
+            Configure the rubric, invite eligible judges, and manage project
+            assignments.
+          </p>
+        </div>
+        <label>
+          <span className="field-label">Event</span>
+          <select
+            onChange={(event) => {
+              setEventId(event.target.value)
+              setTrackIds([])
+              setJudgeId('')
+              setProjectId('')
+            }}
+            value={selectedEventId}
+          >
+            {eventQuery.data?.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.name}
+              </option>
+            ))}
+          </select>
+        </label>
         {message && (
           <p className="mt-4 text-emerald-300" role="status">
             {message}
@@ -257,15 +276,16 @@ export function OrganizerJudgingPage() {
           }}
         >
           <h2 className="text-xl font-semibold">Invite a local judge</h2>
-          <input
-            aria-label="Judge email"
-            className="mt-4 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="judge@example.org"
-            required
-            type="email"
-            value={email}
-          />
+          <label className="mt-4 block">
+            <span className="field-label">Judge email</span>
+            <input
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="judge@example.org"
+              required
+              type="email"
+              value={email}
+            />
+          </label>
           <fieldset className="mt-4">
             <legend className="text-sm text-slate-300">Eligible tracks</legend>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -295,9 +315,21 @@ export function OrganizerJudgingPage() {
             Create 24-hour invitation
           </button>
           {inviteLink && (
-            <output className="mt-4 block break-all rounded bg-slate-950 p-3 text-sm text-cyan-200">
-              {inviteLink}
-            </output>
+            <div className="invite-output">
+              <output>{inviteLink}</output>
+              <button
+                className="button button-secondary button-small"
+                onClick={() =>
+                  void navigator.clipboard.writeText(inviteLink).then(() => {
+                    setInviteCopied(true)
+                    window.setTimeout(() => setInviteCopied(false), 1800)
+                  })
+                }
+                type="button"
+              >
+                {inviteCopied ? 'Copied! ✓' : 'Copy link'}
+              </button>
+            </div>
           )}
           <ul className="mt-5 space-y-2 text-sm">
             {inviteQuery.data?.map((invite) => (
@@ -315,35 +347,37 @@ export function OrganizerJudgingPage() {
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
         <h2 className="text-xl font-semibold">Assignments</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <select
-            aria-label="Judge"
-            className="rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => {
-              setJudgeId(event.target.value)
-              setProjectId('')
-            }}
-            value={judgeId}
-          >
-            <option value="">Choose a judge</option>
-            {judgeQuery.data?.map((judge) => (
-              <option key={judge.id} value={judge.id}>
-                {judge.display_name}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Project"
-            className="rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => setProjectId(event.target.value)}
-            value={projectId}
-          >
-            <option value="">Choose an eligible project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title} · {project.track_name}
-              </option>
-            ))}
-          </select>
+          <label>
+            <span className="field-label">Judge</span>
+            <select
+              onChange={(event) => {
+                setJudgeId(event.target.value)
+                setProjectId('')
+              }}
+              value={judgeId}
+            >
+              <option value="">Choose a judge</option>
+              {judgeQuery.data?.map((judge) => (
+                <option key={judge.id} value={judge.id}>
+                  {judge.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="field-label">Eligible project</span>
+            <select
+              onChange={(event) => setProjectId(event.target.value)}
+              value={projectId}
+            >
+              <option value="">Choose an eligible project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title} · {project.track_name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             className="rounded border border-cyan-500 px-4 py-2 text-cyan-300 disabled:opacity-50"
             disabled={!judgeId || !projectId || assignmentMutation.isPending}
@@ -379,8 +413,24 @@ export function OrganizerJudgingPage() {
             <EmptyState>No judges are assigned yet.</EmptyState>
           </div>
         )}
+        {(assignmentQuery.data?.length ?? 0) > 0 && (
+          <label className="assignment-search">
+            <span className="field-label">Filter assignments</span>
+            <input
+              onChange={(event) => setAssignmentSearch(event.target.value)}
+              placeholder="Judge, project, or track"
+              type="search"
+              value={assignmentSearch}
+            />
+          </label>
+        )}
+        {assignmentSearch && filteredAssignments.length === 0 && (
+          <div className="mt-5">
+            <EmptyState>No assignments match this search.</EmptyState>
+          </div>
+        )}
         <ul className="mt-5 divide-y divide-slate-800">
-          {assignmentQuery.data?.map((assignment) => (
+          {filteredAssignments.map((assignment) => (
             <li
               className="flex flex-wrap items-center justify-between gap-3 py-3"
               key={assignment.id}
@@ -393,7 +443,7 @@ export function OrganizerJudgingPage() {
               </span>
               <button
                 className="text-sm text-red-300"
-                onClick={() => removalMutation.mutate(assignment.id)}
+                onClick={() => setRemovalId(assignment.id)}
                 type="button"
               >
                 Remove
@@ -402,6 +452,20 @@ export function OrganizerJudgingPage() {
           ))}
         </ul>
       </div>
+      <ConfirmDialog
+        open={Boolean(removalId)}
+        title="Remove this assignment?"
+        description="The judge will no longer see this project. Assignments with an existing scorecard cannot be removed."
+        confirmLabel="Remove assignment"
+        pending={removalMutation.isPending}
+        onCancel={() => setRemovalId(null)}
+        onConfirm={() => {
+          if (removalId)
+            removalMutation.mutate(removalId, {
+              onSuccess: () => setRemovalId(null),
+            })
+        }}
+      />
     </section>
   )
 }

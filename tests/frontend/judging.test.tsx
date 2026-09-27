@@ -5,6 +5,7 @@ import {
   renderJudgeAssignments,
   renderJudgeScorecard,
   screen,
+  waitFor,
 } from '../../src/frontend/src/test/judging-testing'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -128,5 +129,96 @@ describe('private judge scorecard', () => {
       comment: 'Private note',
       scores: [{ criterion_id: 'crit_impact', score: 4 }],
     })
+  })
+
+  it('confirms before submitting and then locks a complete evaluation', async () => {
+    const workspace = {
+      project: {
+        id: 'prj_07',
+        event_id: 'evt_01',
+        title: 'Dry Harbour',
+        summary: 'One line.',
+        repo_url: 'https://example.org/repo/07',
+        track_id: 'trk_03',
+        track_name: 'Accessibility',
+        submitted_at: '2026-03-01T04:29:00Z',
+      },
+      rubric: {
+        id: 'rub_v2',
+        event_id: 'evt_01',
+        version: 2,
+        is_active: true,
+        criteria: [
+          {
+            id: 'crit_impact',
+            label: 'Impact',
+            description: 'Who benefits',
+            minimum_score: 1,
+            maximum_score: 5,
+            weight: 2,
+            display_order: 1,
+          },
+        ],
+      },
+      scorecard: null,
+    }
+    const saved = {
+      id: 'scr_private',
+      judge_id: 'jdg_01',
+      project_id: 'prj_07',
+      project_title: 'Dry Harbour',
+      event_id: 'evt_01',
+      track_id: 'trk_03',
+      track_name: 'Accessibility',
+      rubric_id: 'rub_v2',
+      rubric_version: 2,
+      status: 'draft',
+      comment: '',
+      submitted_at: null,
+      criteria: [
+        {
+          criterion_id: 'crit_impact',
+          label: 'Impact',
+          description: 'Who benefits',
+          minimum_score: 1,
+          maximum_score: 5,
+          weight: 2,
+          display_order: 1,
+          score: 4,
+        },
+      ],
+    }
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json(workspace))
+      .mockResolvedValueOnce(Response.json(saved))
+      .mockResolvedValueOnce(
+        Response.json({
+          ...saved,
+          status: 'submitted',
+          submitted_at: '2026-09-27T12:00:00Z',
+        }),
+      )
+      .mockResolvedValueOnce(Response.json(workspace))
+    vi.stubGlobal('fetch', fetchMock)
+    renderJudgeScorecard()
+
+    fireEvent.change(await screen.findByLabelText('Impact'), {
+      target: { value: '4' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Submit scorecard' }))
+    expect(
+      screen.getByRole('dialog', { name: 'Submit this evaluation?' }),
+    ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Submit final evaluation' }),
+    )
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/judge/scorecards/scr_private/submit',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    )
   })
 })

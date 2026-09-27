@@ -2,6 +2,8 @@ import { createBrowserRouter } from 'react-router'
 
 import { App } from '../App'
 import { LoginPage } from '../features/auth/LoginPage'
+import { ProfilePage } from '../features/auth/ProfilePage'
+import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { JudgeAssignmentsPage } from '../features/judging/JudgeAssignmentsPage'
 import { JudgeInvitationPage } from '../features/judging/JudgeInvitationPage'
 import { JudgeScorecardPage } from '../features/judging/JudgeScorecardPage'
@@ -20,6 +22,8 @@ export const router = createBrowserRouter([
       { index: true, element: <GalleryPage /> },
       { path: 'projects/:projectId', element: <ProjectDetailPage /> },
       { path: 'login', element: <LoginPage /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'profile', element: <ProfilePage /> },
       { path: 'workspace', element: <ParticipantPage /> },
       { path: 'workspace/projects/new', element: <ProjectEditorPage /> },
       {

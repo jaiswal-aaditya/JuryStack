@@ -11,9 +11,11 @@ import {
   teams,
 } from './api'
 import { EmptyState, ErrorState, Loading } from '../../shared/AsyncState'
+import { useToast } from '../../shared/toast-context'
 
 export function ParticipantPage() {
   const queryClient = useQueryClient()
+  const { notify } = useToast()
   const eventQuery = useQuery({ queryKey: ['events'], queryFn: events })
   const teamQuery = useQuery({ queryKey: ['teams'], queryFn: teams })
   const projectQuery = useQuery({
@@ -26,6 +28,7 @@ export function ParticipantPage() {
     () => new URLSearchParams(window.location.search).get('invite') ?? '',
   )
   const [inviteUrl, setInviteUrl] = useState('')
+  const [inviteCopied, setInviteCopied] = useState(false)
   const [message, setMessage] = useState('')
 
   const refreshTeams = () =>
@@ -56,19 +59,17 @@ export function ParticipantPage() {
   const chosenEvent = eventId || eventQuery.data?.[0]?.id || ''
 
   return (
-    <section>
+    <section className="workspace-page">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-widest text-cyan-400">
-            Participant
-          </p>
+          <p className="eyebrow">Participant</p>
           <h1 className="mt-2 text-3xl font-bold">Your teams and projects</h1>
+          <p className="mt-3 text-slate-400">
+            Create a team, invite collaborators, and manage submissions.
+          </p>
         </div>
         {(teamQuery.data?.length ?? 0) > 0 && (
-          <Link
-            className="rounded bg-cyan-500 px-4 py-2 font-medium text-slate-950"
-            to="/workspace/projects/new"
-          >
+          <Link className="button button-primary" to="/workspace/projects/new">
             New project
           </Link>
         )}
@@ -83,87 +84,108 @@ export function ParticipantPage() {
       )}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <form
-          className="rounded-xl border border-slate-800 bg-slate-900 p-5"
+          className="panel p-5"
           onSubmit={(event) => {
             event.preventDefault()
             createTeamMutation.mutate({ eventId: chosenEvent, name: teamName })
           }}
         >
           <h2 className="text-xl font-semibold">Create a team</h2>
-          <select
-            aria-label="Event"
-            className="mt-4 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => setEventId(event.target.value)}
-            value={chosenEvent}
-          >
-            {eventQuery.data?.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <input
-            aria-label="Team name"
-            className="mt-3 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => setTeamName(event.target.value)}
-            placeholder="Team name"
-            required
-            value={teamName}
-          />
+          <label className="mt-4 block">
+            <span className="field-label">Event</span>
+            <select
+              onChange={(event) => setEventId(event.target.value)}
+              value={chosenEvent}
+            >
+              {eventQuery.data?.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-3 block">
+            <span className="field-label">Team name</span>
+            <input
+              onChange={(event) => setTeamName(event.target.value)}
+              placeholder="e.g. NorthKiln"
+              required
+              value={teamName}
+            />
+          </label>
           {createTeamMutation.error && (
             <ErrorState error={createTeamMutation.error} />
           )}
           <button
-            className="mt-3 rounded border border-cyan-500 px-4 py-2 text-cyan-300"
+            className="button button-secondary mt-3"
             disabled={!chosenEvent || createTeamMutation.isPending}
           >
             Create team
           </button>
         </form>
         <form
-          className="rounded-xl border border-slate-800 bg-slate-900 p-5"
+          className="panel p-5"
           onSubmit={(event) => {
             event.preventDefault()
             acceptMutation.mutate()
           }}
         >
           <h2 className="text-xl font-semibold">Join with an invite</h2>
-          <input
-            aria-label="Invite token"
-            className="mt-4 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => setToken(event.target.value)}
-            placeholder="Paste invite token"
-            required
-            value={token}
-          />
+          <label className="mt-4 block">
+            <span className="field-label">Invite token</span>
+            <input
+              onChange={(event) => setToken(event.target.value)}
+              placeholder="Paste invite token"
+              required
+              value={token}
+            />
+          </label>
           {acceptMutation.error && <ErrorState error={acceptMutation.error} />}
           <button
-            className="mt-3 rounded border border-cyan-500 px-4 py-2 text-cyan-300"
+            className="button button-secondary mt-3"
             disabled={acceptMutation.isPending}
           >
             Join team
           </button>
         </form>
       </div>
-      <h2 className="mt-10 text-2xl font-semibold">Teams</h2>
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Collaboration</p>
+          <h2>Teams</h2>
+        </div>
+        <span>{teamQuery.data?.length ?? 0} total</span>
+      </div>
       {teamQuery.data?.length === 0 && (
         <EmptyState>You do not belong to a team yet.</EmptyState>
       )}
       <ul className="mt-4 grid gap-4 md:grid-cols-2">
         {teamQuery.data?.map((team) => (
-          <li className="rounded-xl border border-slate-800 p-5" key={team.id}>
-            <h3 className="text-lg font-semibold">{team.name}</h3>
-            <p className="mt-2 text-sm text-slate-400">
+          <li className="panel team-card" key={team.id}>
+            <div className="team-card-title">
+              <span className="quick-icon">
+                {team.name.slice(0, 1).toUpperCase()}
+              </span>
+              <div>
+                <h3>{team.name}</h3>
+                <p>
+                  {team.members.length}{' '}
+                  {team.members.length === 1 ? 'member' : 'members'}
+                </p>
+              </div>
+            </div>
+            <p className="team-members">
               {team.members.map((member) => member.display_name).join(', ')}
             </p>
             <button
-              className="mt-4 text-sm text-cyan-300"
+              className="button button-secondary button-small mt-4"
               onClick={() => {
                 void (async () => {
                   try {
                     const invite = await createInvite(team.id)
                     const url = `${window.location.origin}/workspace?invite=${invite.token}`
                     setInviteUrl(url)
+                    setInviteCopied(false)
                     setMessage(
                       'Single-use invite created; it expires in 24 hours.',
                     )
@@ -184,31 +206,56 @@ export function ParticipantPage() {
         ))}
       </ul>
       {inviteUrl && (
-        <output className="mt-4 block break-all rounded bg-slate-900 p-3 text-sm text-cyan-200">
-          {inviteUrl}
-        </output>
+        <div className="invite-output panel">
+          <div>
+            <span>Single-use invitation</span>
+            <output>{inviteUrl}</output>
+          </div>
+          <button
+            className="button button-secondary button-small"
+            onClick={() =>
+              void navigator.clipboard.writeText(inviteUrl).then(
+                () => {
+                  setInviteCopied(true)
+                  notify('Invitation link copied.')
+                  window.setTimeout(() => setInviteCopied(false), 1800)
+                },
+                () => notify('Could not copy the invitation link.'),
+              )
+            }
+            type="button"
+          >
+            {inviteCopied ? 'Copied! ✓' : 'Copy link'}
+          </button>
+        </div>
       )}
-      <h2 className="mt-10 text-2xl font-semibold">Projects</h2>
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Submissions</p>
+          <h2>Projects</h2>
+        </div>
+        <span>{projectQuery.data?.length ?? 0} total</span>
+      </div>
       {projectQuery.data?.length === 0 && (
         <EmptyState>No drafts or submissions yet.</EmptyState>
       )}
-      <ul className="mt-4 space-y-3">
+      <ul className="project-list">
         {projectQuery.data?.map((project) => (
-          <li
-            className="flex items-center justify-between rounded border border-slate-800 p-4"
-            key={project.id}
-          >
-            <span>
-              {project.title}{' '}
-              <span className="ml-2 text-sm text-slate-400">
+          <li className="panel project-list-row" key={project.id}>
+            <span className="project-list-title">
+              <strong>{project.title}</strong>
+              <small>{project.track_name}</small>
+              <span
+                className={`badge ${project.status === 'submitted' ? 'badge-green' : 'badge-amber'}`}
+              >
                 {project.status}
               </span>
             </span>
             <Link
-              className="text-cyan-300"
+              className="button button-secondary button-small"
               to={`/workspace/projects/${project.id}/edit`}
             >
-              Edit
+              Edit project
             </Link>
           </li>
         ))}

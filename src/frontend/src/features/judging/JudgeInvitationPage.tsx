@@ -5,6 +5,34 @@ import { Link, useParams } from 'react-router'
 import { acceptJudgeInvitation, invitationPreview } from './api'
 import { useAuth } from '../auth/context'
 import { ErrorState, Loading } from '../../shared/AsyncState'
+import { Brand } from '../../shared/Brand'
+
+function EyeIcon({ hidden }: { hidden: boolean }) {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M3 12s3.25-5 9-5 9 5 9 5-3.25 5-9 5-9-5-9-5Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="2.25"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      {hidden && (
+        <path
+          d="m4 4 16 16"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="1.7"
+        />
+      )}
+    </svg>
+  )
+}
 
 export function JudgeInvitationPage() {
   const { token = '' } = useParams()
@@ -16,6 +44,7 @@ export function JudgeInvitationPage() {
   })
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const mutation = useMutation({
     mutationFn: () =>
       acceptJudgeInvitation(
@@ -44,7 +73,8 @@ export function JudgeInvitationPage() {
   }
   const existingAccount = auth.user?.email === query.data?.email
   return (
-    <section className="mx-auto max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-7">
+    <section className="mx-auto max-w-xl panel p-7">
+      <Brand linked={false} />
       <p className="text-sm uppercase tracking-widest text-cyan-400">
         Local invitation
       </p>
@@ -72,24 +102,36 @@ export function JudgeInvitationPage() {
             Create a local judge account. No email service or external account
             is used.
           </p>
-          <input
-            aria-label="Display name"
-            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            onChange={(event) => setDisplayName(event.target.value)}
-            placeholder="Display name"
-            required
-            value={displayName}
-          />
-          <input
-            aria-label="Password"
-            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
-            minLength={12}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Password (12+ characters)"
-            required
-            type="password"
-            value={password}
-          />
+          <label className="block">
+            <span className="field-label">Display name</span>
+            <input
+              onChange={(event) => setDisplayName(event.target.value)}
+              placeholder="Display name"
+              required
+              value={displayName}
+            />
+          </label>
+          <label className="block">
+            <span className="field-label">Password</span>
+            <div className="password-field">
+              <input
+                minLength={12}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password (12+ characters)"
+                required
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+              />
+              <button
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="password-toggle"
+                onClick={() => setShowPassword((visible) => !visible)}
+                type="button"
+              >
+                <EyeIcon hidden={showPassword} />
+              </button>
+            </div>
+          </label>
         </div>
       )}
       {mutation.error && (

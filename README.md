@@ -73,6 +73,20 @@ The fixture event is deliberately closed. To exercise the open-event path,
 create a future event as the organizer, then log in as a participant and form a
 team for it.
 
+## Frontend experience
+
+The React application uses a responsive, role-aware shell and the JuryStack
+logo throughout. It supports light, dark, and system appearance preferences;
+system is the default and explicit choices persist in the browser. Authenticated
+users receive an API-backed dashboard for their existing role, a read-only
+profile, and navigation limited to implemented, authorized workflows.
+
+Public account signup is intentionally unavailable because the backend exposes
+no safe public or administrator user-creation contract. Judge accounts continue
+to be created only through local, single-use organizer invitations. This keeps
+the redesigned interface aligned with the existing authentication and role
+model rather than presenting unsupported controls.
+
 ## Judging flows
 
 - Organizers configure versioned rubrics, invite local judges, and manage
