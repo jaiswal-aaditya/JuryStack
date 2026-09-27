@@ -155,6 +155,7 @@ def build_seed_rows(fixture: FixtureData) -> dict[str, list[dict[str, Any]]]:
                 "rubric_id": RUBRIC_ID,
                 "key": key,
                 "label": label,
+                "description": "",
                 "weight": 1,
                 "minimum_score": 1,
                 "maximum_score": 5,

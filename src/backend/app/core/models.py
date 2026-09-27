@@ -112,6 +112,9 @@ class Track(Base):
     judge_eligibilities: Mapped[list[JudgeTrackEligibility]] = relationship(
         back_populates="track"
     )
+    judge_invitation_tracks: Mapped[list[JudgeInvitationTrack]] = relationship(
+        back_populates="track"
+    )
 
 
 class Prize(Base):
@@ -250,6 +253,7 @@ class RubricCriterion(Base):
     rubric_id: Mapped[str] = mapped_column(ForeignKey("rubrics.id", ondelete="CASCADE"))
     key: Mapped[str] = mapped_column(String(64))
     label: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str] = mapped_column(Text, default="")
     weight: Mapped[int] = mapped_column(Integer)
     minimum_score: Mapped[int] = mapped_column(Integer, default=1)
     maximum_score: Mapped[int] = mapped_column(Integer, default=5)
@@ -266,12 +270,31 @@ class JudgeInvitation(Base):
     event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
     email: Mapped[str] = mapped_column(String(320), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     accepted_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
 
     event: Mapped[Event] = relationship(back_populates="judge_invitations")
     accepted_by_user: Mapped[User | None] = relationship(
         back_populates="accepted_judge_invitations"
     )
+    tracks: Mapped[list[JudgeInvitationTrack]] = relationship(
+        back_populates="invitation", cascade="all, delete-orphan"
+    )
+
+
+class JudgeInvitationTrack(Base):
+    __tablename__ = "judge_invitation_tracks"
+    __table_args__ = (Index("ix_judge_invitation_tracks_track_id", "track_id"),)
+
+    invitation_id: Mapped[str] = mapped_column(
+        ForeignKey("judge_invitations.id", ondelete="CASCADE"), primary_key=True
+    )
+    track_id: Mapped[str] = mapped_column(
+        ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True
+    )
+
+    invitation: Mapped[JudgeInvitation] = relationship(back_populates="tracks")
+    track: Mapped[Track] = relationship(back_populates="judge_invitation_tracks")
 
 
 class JudgeTrackEligibility(Base):
@@ -334,7 +357,7 @@ class Scorecard(Base):
 class CriterionScore(Base):
     __tablename__ = "criterion_scores"
     __table_args__ = (
-        CheckConstraint("score >= 1 AND score <= 5", name="ck_criterion_score_range"),
+        CheckConstraint("score >= 0 AND score <= 100", name="ck_criterion_score_range"),
         Index("ix_criterion_scores_criterion_id", "criterion_id"),
     )
 

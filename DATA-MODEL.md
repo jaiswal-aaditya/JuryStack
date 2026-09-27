@@ -1,10 +1,11 @@
 # Data model
 
-Alembic revisions through `20260927_0003` create the normalized PostgreSQL
-schema and add optional event start and submission-open timestamps. SQLAlchemy
-2 typed models declare bidirectional relationships; services use those
-relationships, while migrations remain the only production schema-management
-mechanism. `Base.metadata.create_all()` is not used.
+Alembic revisions through `20260927_0004` create the normalized PostgreSQL
+schema, add optional event start and submission-open timestamps, and complete
+the first judging slice's invitation and rubric fields. SQLAlchemy 2 typed
+models declare bidirectional relationships; services use those relationships,
+while migrations remain the only production schema-management mechanism.
+`Base.metadata.create_all()` is not used.
 
 ## Relations and integrity
 
@@ -14,7 +15,7 @@ mechanism. `Base.metadata.create_all()` is not used.
 | Event setup | `events`, `tracks`, `prizes`, `custom_questions` | Unique event slug, track name per event, and question position per event; aware UTC `starts_at`, `submissions_open`, and required `submissions_close`; all children reference an event. |
 | Teams | `teams`, `team_members`, `team_invites` | `team_members` is an explicit many-to-many association with a composite primary key; only unique token hashes are stored; expiry is UTC and successful acceptance deletes the single-purpose invite. |
 | Submissions | `projects`, `custom_answers` | Projects reference event, team, and track; drafts have no `submitted_at`, while submission atomically sets `submitted` and the server timestamp; answers use a project/question composite key. There is intentionally no unique constraint on `projects.team_id`. |
-| Judging | `rubrics`, `rubric_criteria`, `judge_invitations`, `judge_track_eligibility`, `judge_assignments`, `scorecards`, `criterion_scores` | Versioned rubrics, positive criterion weights and bounded score ranges; eligibility is an explicit judge/track association; assignments are unique per judge/project; scorecards are unique per judge/project/rubric; criterion scores use a composite key. |
+| Judging | `rubrics`, `rubric_criteria`, `judge_invitations`, `judge_invitation_tracks`, `judge_track_eligibility`, `judge_assignments`, `scorecards`, `criterion_scores` | Versioned rubrics preserve criterion label, description, relative positive weight, configured range, and display order. Invitation token hashes are unique, expiring, single-use records with event-track scope. Eligibility is an explicit judge/track association; assignments are unique per judge/project; scorecards are unique per judge/project/rubric. The broad 0–100 criterion-score constraint supports configured ranges; criterion-specific enforcement belongs to the later scorecard service. |
 | Audit | `audit_events` | Stable IDs and indexed event, action, and occurrence time; application services will enforce append-only writes. |
 
 Foreign keys, uniqueness constraints, checks, and lookup indexes are defined in
@@ -56,3 +57,14 @@ checker sessions map as follows; only SHA-256 token hashes are stored:
 | judge_a | `jdg_01` | `jdg_a_91bc` |
 | judge_b | `jdg_02` | `jdg_b_44de` |
 | participant | deterministic user for the first fixture team member | `prt_2e88` |
+
+## First Tier 2 judging slice
+
+Saving a rubric creates a new `(event_id, version)` row and deactivates the
+previous active version instead of editing it. Existing scorecards retain their
+foreign key to the exact historical rubric. Judge invitations store only a
+SHA-256 token hash, an expiry, accepted-user marker, and explicit event tracks;
+acceptance locks the row before consuming it and adds the resulting judge-track
+eligibility. Manual and balanced assignments share the database uniqueness
+rule on `(judge_id, project_id)`. Assignment services admit only submitted
+projects and eligible judge/project track pairs.

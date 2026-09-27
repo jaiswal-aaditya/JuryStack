@@ -20,14 +20,14 @@ exists; **verified** is reserved for behavior exercised successfully.
 | **run.py 1: public gallery returns 200 unauthenticated** | `GET /api/public/projects` | `/` | `projects` publication index | official `run.py`: “gallery is public” | Verified |
 | **run.py 2: raw gallery includes a first-three fixture title** | `GET /api/public/projects` | `/` | fixture projects, preserving titles | official `run.py`: “project from fixtures shown” | Verified |
 | **run.py 3: participant late submission returns 4xx** | `POST /api/projects` | project editor | event close time + project state | official `run.py`: “closed event refuses submissions” | Verified |
-| T2 invite judges and track eligibility | `judging`; `/api/judge-invitations` | `/organizer/judges` | `judge_invitations`, `judge_track_eligibility`; token hash/uniqueness | invitation and track-scope tests | Scaffolded |
-| T2 assign judges to projects | `judging`; `/api/judge-assignments` | `/organizer/assignments` | `judge_assignments`; unique judge/project identity | assignment authorization tests | Scaffolded |
-| T2 weighted versioned rubric | `judging`; `/api/rubrics` | `/organizer/rubric` | `rubrics`, `rubric_criteria`; weight/range/version checks | weight/range/version tests | Scaffolded |
+| T2 invite judges and track eligibility | `judging`; `/api/judge-invitations` | `/organizer/judging`, local acceptance link | `judge_invitations`, `judge_invitation_tracks`, `judge_track_eligibility`; unique hash, expiry, row-locked single use | expiry/reuse and live acceptance/track-scope tests | Verified |
+| T2 assign judges to projects | `judging`; `/api/judge-assignments`, event list/balance routes, `/api/judge/projects` | `/organizer/judging`, `/judge/assignments` | `judge_assignments`; unique judge/project identity | duplicate, track, unauthorized, visibility, deterministic balance and insufficient-pool tests | Verified |
+| T2 weighted versioned rubric | `judging`; event rubric list/create routes | `/organizer/judging` | `rubrics`, `rubric_criteria`; positive relative weight, range, order, and event-version checks | weight/range/label/version history tests | Verified |
 | T2 private judge scorecards | `judging`; `/api/judge/scorecards` | `/judge/projects/:id` | `scorecards`, `criterion_scores`; one logical card per judge/project/version | own/peer/participant and assignment isolation tests | Scaffolded |
 | T2 organizer progress view | `judging`; `/api/organizer/judging-progress` | `/organizer/progress` | assignment/scorecard lookup indexes | missing/incomplete/unequal-review tests | Scaffolded |
 | T2 weighted scoring and normalization | `results`; `/api/results` | `/organizer/results` | raw score preservation; derived result query/materialization TBD | deterministic raw, overlap, one-review, constant-scorer tests | Scaffolded |
 | T2 organizer CSV export with formula safety | `results`; `/api/results.csv` | results export control | score/project lookup indexes; append-only export audit | organizer-only + CSV injection tests | Scaffolded |
-| T2 audit-sensitive actions | `audit` service | organizer audit page (post-T2 core) | `audit_events`; append-only application policy/indexes | audit creation/immutability tests | Scaffolded |
+| T2 audit-sensitive actions | `audit` service | organizer audit page (post-T2 core) | `audit_events`; append-only application policy/indexes | live rubric/invitation/assignment workflow plus database row inspection; remaining score/results actions deferred | Partially implemented |
 | **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scores` | judge dashboard | assignments/scorecards/criterion scores | official `run.py`: “judge sees own scores” | Not started |
 | **run.py 5: judge B gets 401/403 for judge A scores** | `GET /api/judge/scores?judge_id=jdg_01` | no peer-score UI | centralized actor/scorecard policy | official `run.py`: “judge cannot see peer scores” | Not started |
 | **run.py 6: participant gets 401/403 on judge scores** | `GET /api/judge/scores` | no participant judge UI | centralized role policy | official `run.py`: “participant blocked” | Not started |
@@ -56,7 +56,11 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 ## Next vertical slice
 
-Tier 1 is complete. Stop here; begin Tier 2 only under a separate explicit task.
+The first Tier 2 slice (rubric configuration, local judge invitation, and
+track-safe manual/balanced assignment) is complete. Stop here. Scorecard entry,
+progress, raw scoring, normalization, and export require a separate explicit
+task; Tier 2 remains unclaimed until those requirements and official checks are
+complete.
 
 ## Authentication foundation milestone (2026-09-27)
 
@@ -165,3 +169,24 @@ Tier 1 is complete. Stop here; begin Tier 2 only under a separate explicit task.
 - Regenerated `acceptance-report.txt` only with the prescribed `run.py` output
   redirection. All T1 lines pass. No product fix was required and no Tier 2
   work was added or claimed.
+
+## First Tier 2 judging slice milestone (2026-09-27)
+
+- Added organizer-created immutable rubric versions with ordered labels,
+  descriptions, configurable 0–100 score bounds, and positive relative
+  weights. Earlier scorecards remain attached to their original rubric.
+- Added local expiring, hash-only, row-locked single-use judge invitations,
+  explicit invitation track scope, local account creation/acceptance, and
+  invitation creation/acceptance audit events.
+- Added organizer inspection, manual assignment/removal, deterministic balanced
+  batches, unique-pair enforcement, submitted-project and track checks, and a
+  judge view restricted by both assignment and current eligibility. Assignment
+  writes are audited transactionally.
+- Added organizer and judge React flows with loading, empty, validation,
+  forbidden, error, and success states. Focused tests cover invitation expiry
+  and reuse, invalid rubrics, duplicates, track violations, unauthorized
+  changes, judge visibility, even load, insufficient pools, batch creation, and
+  idempotent balancing.
+- Normalization, scorecard entry, judging progress, results, and CSV export were
+  not implemented in this slice. `.dogfood.toml` therefore continues to claim
+  only T1.

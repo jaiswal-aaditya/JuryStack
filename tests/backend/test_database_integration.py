@@ -13,14 +13,13 @@ from collections import Counter
 from datetime import UTC
 from pathlib import Path
 
+from app.core.fixtures import load_fixture, stable_user_id
+from app.core.seed import DEMO_TOKENS
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.core.fixtures import load_fixture, stable_user_id
-from app.core.seed import DEMO_TOKENS
-
-EXPECTED_REVISION = "20260927_0003"
+EXPECTED_REVISION = "20260927_0004"
 
 
 async def verify_seeded_database(database_url: str, fixture_path: Path) -> None:

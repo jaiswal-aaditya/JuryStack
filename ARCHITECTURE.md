@@ -21,7 +21,8 @@ Backend packages are divided into `auth`, `events`, `teams`, `projects`,
 and call services; services own use cases, policy checks, audits, and transaction
 boundaries; repositories own SQLAlchemy queries. Tier 1 uses this split for
 event configuration, team invites, project drafts/submission, and the public
-gallery. Tier 2 packages remain empty.
+gallery. The first Tier 2 slice uses the same split for versioned rubrics,
+local judge invitations, track eligibility, and manual or balanced assignment.
 
 ## Tier 1 request paths
 
@@ -36,6 +37,24 @@ React uses TanStack Query for server state and keeps no authoritative role,
 ownership, or deadline decision. Nginx serves browser routes through the SPA
 fallback, while `/api` is always proxied to FastAPI, including the raw JSON
 gallery used by the official non-browser checker.
+
+## First Tier 2 judging slice
+
+Organizer-only routes create immutable rubric versions, issue local invitation
+links, list event judges and assignments, and create or remove assignments.
+Invitation links contain a cryptographically random token that crosses the API
+boundary only when issued; the database stores its hash, expiry, track scope,
+and single-use acceptance marker. Acceptance can create a password-backed local
+judge or, after authentication, attach the invited email's existing account.
+
+Balanced assignment planning is deterministic and completes before writes are
+made. It counts existing load, excludes duplicate judge/project pairs, and
+selects only judges eligible for each project's track; an insufficient track
+pool rejects the entire request. Judge project queries independently join both
+assignment and current track eligibility, so stale or forged direct requests
+cannot widen judge visibility. Rubric, invitation, acceptance, manual
+assignment, removal, and balanced-batch writes append readable audit events in
+the same transaction.
 
 ## Authentication and authorization
 

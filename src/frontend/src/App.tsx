@@ -30,6 +30,18 @@ export function App() {
             >
               Events
             </NavLink>
+            <NavLink
+              className="text-sm text-slate-300 hover:text-white"
+              to="/organizer/judging"
+            >
+              Judging setup
+            </NavLink>
+            <NavLink
+              className="text-sm text-slate-300 hover:text-white"
+              to="/judge/assignments"
+            >
+              Assignments
+            </NavLink>
             <AuthMenu />
           </div>
         </nav>

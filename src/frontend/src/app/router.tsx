@@ -2,6 +2,9 @@ import { createBrowserRouter } from 'react-router'
 
 import { App } from '../App'
 import { LoginPage } from '../features/auth/LoginPage'
+import { JudgeAssignmentsPage } from '../features/judging/JudgeAssignmentsPage'
+import { JudgeInvitationPage } from '../features/judging/JudgeInvitationPage'
+import { OrganizerJudgingPage } from '../features/judging/OrganizerJudgingPage'
 import { GalleryPage } from '../features/tier1/GalleryPage'
 import { OrganizerEventsPage } from '../features/tier1/OrganizerEventsPage'
 import { ParticipantPage } from '../features/tier1/ParticipantPage'
@@ -23,6 +26,9 @@ export const router = createBrowserRouter([
         element: <ProjectEditorPage />,
       },
       { path: 'organizer/events', element: <OrganizerEventsPage /> },
+      { path: 'organizer/judging', element: <OrganizerJudgingPage /> },
+      { path: 'judge/assignments', element: <JudgeAssignmentsPage /> },
+      { path: 'judge-invitations/:token', element: <JudgeInvitationPage /> },
     ],
   },
 ])

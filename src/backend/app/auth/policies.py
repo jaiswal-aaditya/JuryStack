@@ -12,6 +12,7 @@ from app.core.errors import PermissionDenied
 from app.core.models import (
     JudgeAssignment,
     JudgeTrackEligibility,
+    Project,
     Team,
     TeamMember,
     Track,
@@ -103,6 +104,9 @@ class AuthorizationService:
                 exists().where(
                     JudgeAssignment.judge_id == actor.id,
                     JudgeAssignment.project_id == project_id,
+                    JudgeAssignment.project_id == Project.id,
+                    JudgeTrackEligibility.judge_id == actor.id,
+                    JudgeTrackEligibility.track_id == Project.track_id,
                 )
             )
         )
