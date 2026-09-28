@@ -134,6 +134,45 @@ describe('organizer judging operations', () => {
           },
         ],
       },
+      '/api/organizer/events/evt_01/rankings': {
+        method: 'paired_overlap_median_bias',
+        formula_version: '1.0',
+        minimum_reviews: 2,
+        minimum_overlap: 2,
+        projects: [
+          {
+            project_id: 'prj_01',
+            project_title: 'Quiet Hours',
+            team_id: 'tm_01',
+            team_name: 'Nightshift',
+            track_id: 'trk_01',
+            track_name: 'Developer tools',
+            eligible: true,
+            eligibility_reason: null,
+            review_count: 3,
+            excluded_review_count: 0,
+            raw_total: 61.111111,
+            final_value: 62.5,
+            raw_rank: 12,
+            rank: 9,
+            rank_movement: 3,
+            fallbacks_used: ['none'],
+            contributions: [
+              {
+                review_id: 'scr_1',
+                judge_id: 'jdg_01',
+                judge_name: 'Ada',
+                raw_weighted_total: 8,
+                raw_percentage: 41.666667,
+                judge_bias: -14.583333,
+                normalized_contribution: 56.25,
+                fallback_used: 'none',
+              },
+            ],
+          },
+        ],
+        judges: [],
+      },
       '/api/organizer/audit-events': [
         {
           id: 'audit_1',
@@ -165,6 +204,9 @@ describe('organizer judging operations', () => {
     expect(await screen.findByText('Judging operations')).toBeVisible()
     expect(screen.getByText('50% complete')).toBeVisible()
     expect(screen.getByText(/1\/3 submitted/)).toBeVisible()
+    expect(screen.getByText('Normalized project ranking')).toBeVisible()
+    fireEvent.click(screen.getByText('Explain this ranking'))
+    expect(screen.getByText(/raw weighted total 8/)).toBeVisible()
     expect(
       screen.getByRole('link', { name: 'Export results CSV' }),
     ).toHaveAttribute('href', '/api/organizer/results.csv?event_id=evt_01')

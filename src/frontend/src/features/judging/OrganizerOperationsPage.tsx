@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
-import { auditEvents, judges, organizerProgress } from './api'
+import {
+  auditEvents,
+  judges,
+  organizerProgress,
+  organizerRankings,
+} from './api'
 import { events, gallery } from '../tier1/api'
 import { EmptyState, ErrorState, Loading } from '../../shared/AsyncState'
 
@@ -43,6 +48,11 @@ export function OrganizerOperationsPage() {
       }),
     enabled: Boolean(selectedEventId),
   })
+  const rankingQuery = useQuery({
+    queryKey: ['organizer-rankings', selectedEventId],
+    queryFn: () => organizerRankings(selectedEventId),
+    enabled: Boolean(selectedEventId),
+  })
   const auditQuery = useQuery({
     queryKey: ['audit-events', auditEventId, auditActorId, auditAction],
     queryFn: () =>
@@ -82,6 +92,7 @@ export function OrganizerOperationsPage() {
     judgeQuery.isLoading ||
     projectQuery.isLoading ||
     progressQuery.isLoading ||
+    rankingQuery.isLoading ||
     auditQuery.isLoading
   if (loading) return <Loading label="Loading judging operations…" />
   const error =
@@ -89,6 +100,7 @@ export function OrganizerOperationsPage() {
     judgeQuery.error ??
     projectQuery.error ??
     progressQuery.error ??
+    rankingQuery.error ??
     auditQuery.error
   if (error) return <ErrorState error={error} />
   if (!selectedEvent)
@@ -300,6 +312,75 @@ export function OrganizerOperationsPage() {
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="panel overflow-x-auto">
+        <div>
+          <h2>Normalized project ranking</h2>
+          <p>
+            Paired-overlap median bias · minimum{' '}
+            {rankingQuery.data?.minimum_reviews ?? 2} complete reviews
+          </p>
+        </div>
+        <table className="mt-4 w-full text-left text-sm">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Project</th>
+              <th>Reviews</th>
+              <th>Raw total</th>
+              <th>Final value</th>
+              <th>Movement</th>
+              <th>Explanation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rankingQuery.data?.projects.map((project) => (
+              <tr key={project.project_id}>
+                <td>{project.rank ?? '—'}</td>
+                <td>
+                  {project.project_title}
+                  {!project.eligible && (
+                    <small className="block text-slate-400">
+                      {project.eligibility_reason}
+                    </small>
+                  )}
+                </td>
+                <td>{project.review_count}</td>
+                <td>{project.raw_total?.toFixed(3) ?? '—'}</td>
+                <td>{project.final_value?.toFixed(3) ?? '—'}</td>
+                <td>
+                  {project.rank_movement == null
+                    ? '—'
+                    : project.rank_movement > 0
+                      ? `+${project.rank_movement}`
+                      : project.rank_movement}
+                </td>
+                <td>
+                  <details>
+                    <summary>Explain this ranking</summary>
+                    <p className="my-2 text-slate-400">
+                      Raw rank {project.raw_rank ?? '—'}; fallbacks:{' '}
+                      {project.fallbacks_used.join(', ') || 'none'}.
+                    </p>
+                    <ul className="space-y-1">
+                      {project.contributions.map((contribution) => (
+                        <li key={contribution.review_id}>
+                          {contribution.judge_name}: raw weighted total{' '}
+                          {contribution.raw_weighted_total}, raw{' '}
+                          {contribution.raw_percentage.toFixed(3)}, bias{' '}
+                          {contribution.judge_bias.toFixed(3)}, contribution{' '}
+                          {contribution.normalized_contribution.toFixed(3)} ·{' '}
+                          {contribution.fallback_used}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div className="panel">

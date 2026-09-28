@@ -138,6 +138,55 @@ const auditEventSchema = z.object({
   detail: z.record(z.string(), z.unknown()),
   occurred_at: z.string(),
 })
+const rankingSchema = z.object({
+  method: z.string(),
+  formula_version: z.string(),
+  minimum_reviews: z.number(),
+  minimum_overlap: z.number(),
+  projects: z.array(
+    z.object({
+      project_id: z.string(),
+      project_title: z.string(),
+      team_id: z.string(),
+      team_name: z.string(),
+      track_id: z.string(),
+      track_name: z.string(),
+      eligible: z.boolean(),
+      eligibility_reason: z.string().nullable(),
+      review_count: z.number(),
+      excluded_review_count: z.number(),
+      raw_total: z.number().nullable(),
+      final_value: z.number().nullable(),
+      raw_rank: z.number().nullable(),
+      rank: z.number().nullable(),
+      rank_movement: z.number().nullable(),
+      fallbacks_used: z.array(z.string()),
+      contributions: z.array(
+        z.object({
+          review_id: z.string(),
+          judge_id: z.string(),
+          judge_name: z.string(),
+          raw_weighted_total: z.number(),
+          raw_percentage: z.number(),
+          judge_bias: z.number(),
+          normalized_contribution: z.number(),
+          fallback_used: z.string(),
+        }),
+      ),
+    }),
+  ),
+  judges: z.array(
+    z.object({
+      judge_id: z.string(),
+      judge_name: z.string(),
+      eligible_review_count: z.number(),
+      overlap_count: z.number(),
+      raw_variance: z.number(),
+      bias: z.number(),
+      fallback_used: z.string(),
+    }),
+  ),
+})
 
 export type Rubric = z.infer<typeof rubricSchema>
 export type Judge = z.infer<typeof judgeSchema>
@@ -346,4 +395,12 @@ export async function auditEvents(filters: {
   return z
     .array(auditEventSchema)
     .parse(await request(`/api/organizer/audit-events${suffix}`))
+}
+
+export async function organizerRankings(eventId: string) {
+  return rankingSchema.parse(
+    await request(
+      `/api/organizer/events/${encodeURIComponent(eventId)}/rankings`,
+    ),
+  )
 }
