@@ -25,7 +25,7 @@ exists; **verified** is reserved for behavior exercised successfully.
 | T2 weighted versioned rubric | `judging`; event rubric list/create routes | `/organizer/judging` | `rubrics`, `rubric_criteria`; positive relative weight, range, order, and event-version checks | weight/range/label/version history tests | Verified |
 | T2 private judge scorecards | `judging`; `/api/judge/scores`, `/api/judge/scorecards`, assigned-project workspace/save/submit routes | `/judge/assignments`, `/judge/projects/:id/score` | `scorecards`, `criterion_scores`; unique judge/project/rubric identity and constrained draft/submitted state | range/completeness, own/peer/participant, guessed-ID, unassigned, track, query-tampering, and submitted-lock tests | Verified |
 | T2 organizer progress view | `results`; `/api/organizer/events/{event_id}/progress` | `/organizer/operations` | assignment/scorecard lookup indexes | progress counts, incomplete data, filters, coverage, frontend view | Verified |
-| T2 weighted scoring and normalization | `results`; `/api/results` | `/organizer/results` | raw score preservation; derived result query/materialization TBD | deterministic raw, overlap, one-review, constant-scorer tests | Scaffolded |
+| T2 weighted scoring and normalization | `results`; `/api/results` | `/organizer/results` | raw score preservation; derived result query/materialization TBD | deterministic raw, overlap, one-review, constant-scorer tests | Verified |
 | T2 organizer CSV export with formula safety | `results`; `/api/organizer/results.csv` | `/organizer/operations` export control | derived score/project joins; append-only export audit | organizer-only, valid parsing, stable fields, incomplete data, formula injection | Verified |
 | T2 audit-sensitive actions | `audit`; `/api/organizer/audit-events`; publication endpoint | `/organizer/operations` | `audit_events`; database update/delete rejection; `events.results_published_at` | workflow events, export/publication audit, organizer-only filtered reads | Verified |
 | **run.py 4: judge A reads own scores with 200** | `GET /api/judge/scores` | judge assignments and scorecard editor | assignment/eligibility-scoped scorecards | official `run.py`: “judge sees own scores” | Verified |
@@ -56,9 +56,9 @@ exists; **verified** is reserved for behavior exercised successfully.
 
 ## Next vertical slice
 
-Organizer operations, raw weighted scoring, CSV export, and append-only audit
-history are complete. Cross-judge normalization remains the only known Tier 2
-product gap, so Tier 2 remains honestly unclaimed.
+Organizer operations, raw weighted scoring, cross-judge normalization, CSV
+export, and append-only audit history are complete. Tier 2 is claimed and
+verified.
 
 ## Tier 2 operations milestone (2026-09-27)
 
@@ -73,8 +73,8 @@ product gap, so Tier 2 remains honestly unclaimed.
   publication, and a database trigger that rejects audit updates/deletes.
 - Added backend and frontend coverage for calculations, incomplete scores,
   CSV parsing/safety, authorization, filters, coverage, export, and audit UI.
-- Normalization remains outside this slice; `.dogfood.toml` therefore continues
-  to claim T1 only despite all official behavioral probes now passing.
+- - Cross-judge normalization was subsequently implemented and verified. `.dogfood.toml`
+  now claims T1 and T2, with all official behavioral probes passing.
 
 ## Frontend UI/UX modernization milestone (2026-09-27)
 
