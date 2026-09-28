@@ -15,8 +15,9 @@ test('browses the public gallery and shows the deadline state', async ({
 
   await page.goto('/login')
   await page.getByLabel('Email').fill('priya1@example.org')
-  await page.getByLabel('Password').fill('jurystack-local-demo')
+  await page.getByRole('textbox', { name: 'Password' }).fill('jurystack-local-demo')
   await page.getByRole('button', { name: 'Log in' }).click()
+  await page.waitForURL('**/dashboard')
   await page.goto('/workspace/projects/new')
   await expect(page.getByRole('alert')).toContainText(
     'submission deadline has passed',
