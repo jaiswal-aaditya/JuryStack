@@ -2,8 +2,8 @@
 base_url = "http://localhost:8080"
 
 [tiers]
-claimed = ["T1"]
-pitch = "A complete self-hosted Tier 1 event, team, submission, deadline, and gallery workflow."
+claimed = ["T1", "T2"]
+pitch = "A complete self-hosted Tier 1 and Tier 2 event, judging, scoring, normalization, export, and audit workflow."
 
 [auth]
 # Whatever header proves you are this role. A cookie, a

@@ -3,10 +3,9 @@
 JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
 2026. Tier 1 is implemented end to end: organizers configure events,
 participants form teams and submit projects before a server-enforced UTC
-deadline, and visitors browse a searchable, filterable public gallery. Tier 2
-rubric, invitation, assignment, private-scorecard, organizer operations, CSV
-export, and audit-history slices are implemented. Tier 2 remains unclaimed
-until the separately scoped normalization method is implemented and verified.
+deadline, and visitors browse a searchable, filterable public gallery. Tier 2 rubric, invitation, assignment, private-scorecard, organizer operations, CSV
+export, audit-history, and cross-judge normalization slices are implemented and
+verified.
 
 ## Architecture
 
@@ -126,10 +125,9 @@ pnpm dev
 
 ## Verification status
 
-`.dogfood.toml` claims only T1 because normalization remains outstanding. The
-official checker now passes all seven T1/T2 behavioral probes, including the
-organizer CSV contract. This is deliberately not represented as complete T2
-until the documented normalization requirement is also met.
+`.dogfood.toml` claims T1 and T2. The official checker passes all seven T1/T2
+behavioral probes, including the organizer CSV contract. Cross-judge
+normalization is implemented and covered by deterministic backend tests.
 
 Backend unit and live API checks, frontend lint/type/build/tests, pristine
 PostgreSQL fixture verification, Alembic drift checking, and the complete live
