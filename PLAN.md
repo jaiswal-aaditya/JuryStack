@@ -273,3 +273,17 @@ verified.
   frontend tests plus lint, formatting, and production build passed. The
   official report has all T1 and judge-isolation lines passing; only the
   deliberately deferred CSV line fails.
+
+## Public gallery and visual follow-up (2026-09-29)
+
+- The user confirmed that the event implementation window was postponed through
+  11:30 on 2026-09-29; the timezone was not specified.
+- The public gallery now loads the public project collection and applies search,
+  multi-track filters, sorting, and grid/list presentation client-side. Search,
+  selected tracks, sort, and view are represented in the URL; view preference
+  is also remembered locally.
+- Quick peek remains presentation-only. Its expanded panel has an accessible
+  toggle, Escape close with focus return, and a reduced-motion-aware collapse
+  animation; no backend contract or project data changed.
+- A production frontend build passed after these changes. Manual browser
+  interaction and automated frontend tests remain to be run.

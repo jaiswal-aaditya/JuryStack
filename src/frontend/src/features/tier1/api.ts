@@ -86,10 +86,17 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
   return body
 }
 
-export async function gallery(search = '', trackId = '') {
+export async function gallery(
+  search = '',
+  trackId = '',
+  limit = 100,
+  offset = 0,
+) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (trackId) params.set('track_id', trackId)
+  params.set('limit', String(limit))
+  params.set('offset', String(offset))
   const suffix = params.size ? `?${params.toString()}` : ''
   return z
     .object({ items: z.array(projectSchema), total: z.number() })

@@ -18,7 +18,7 @@ function applyTheme(preference: ThemePreference) {
   document.documentElement.style.colorScheme = resolved
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', dark ? '#111827' : '#f7f9fc')
+    ?.setAttribute('content', dark ? '#0b1226' : '#f5f7fc')
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
