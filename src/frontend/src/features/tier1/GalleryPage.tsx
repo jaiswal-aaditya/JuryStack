@@ -411,6 +411,7 @@ const ProjectCard = memo(function ProjectCard({
         <button
           aria-controls={panelId}
           aria-expanded={isOpen}
+          aria-label={isOpen ? 'Close quick peek' : 'Open quick peek'}
           className="project-peek-toggle"
           onClick={togglePeek}
           ref={toggleRef}
@@ -421,7 +422,6 @@ const ProjectCard = memo(function ProjectCard({
         </button>
         <div aria-hidden={!isOpen} className="project-peek-clip" id={panelId}>
           <div className="project-peek-content">
-      <button aria-label="Close quick peek" className="peek-close" onClick={closePeek} type="button">×</button>
             <p>{project.summary}</p>
             <div className="peek-details-row">
               <span className="peek-submitted"><CalendarIcon /> Submitted {project.submitted_at ? new Date(project.submitted_at).toLocaleDateString() : 'date unavailable'}</span>
