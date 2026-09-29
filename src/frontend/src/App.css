@@ -3039,9 +3039,6 @@ a:focus-visible {
   font-size: 0.78rem;
   line-height: 1.2;
 }
-.search-field .field-label {
-  padding-left: 3.15rem;
-}
 .gallery-view-controls {
   display: flex;
   flex: 0 0 auto;
@@ -3146,7 +3143,6 @@ a:focus-visible {
 }
 
 @media (max-width: 420px) {
-  .search-field .field-label { padding-left: 1rem; }
   .gallery-controls-row { gap: 0.4rem; }
   .gallery-view-controls { gap: 0.35rem; }
   .gallery-view-controls .sort-control select {

@@ -113,10 +113,10 @@ const GallerySearch = memo(function GallerySearch({
 
   return (
     <label className="search-field">
-      <span className="field-label">Search projects</span>
       <span className="search-control">
         <SearchIcon />
         <input
+          aria-label="Search projects"
           className="input"
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Search projects or teams"
