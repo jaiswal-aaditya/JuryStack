@@ -284,18 +284,18 @@ export function GalleryPage() {
   return (
     <section className="gallery-page">
       <div className="gallery-hero">
-        <div>
+        <div className="gallery-hero-content">
           <p className="eyebrow">Public project gallery</p>
           <h1>Projects built to be seen</h1>
           <p>
             JuryStack is a modern, open-source, self-hostable hackathon platform
-            for the entire event lifecycle—from teams and submissions to
+            for the entire event lifecycle, from teams and submissions through
             judging, normalization, results, and export.
           </p>
-        </div>
-        <div className="gallery-stat">
-          <strong>{all.data?.total ?? '—'}</strong>
-          <span>submitted projects</span>
+          <div className="gallery-stat">
+            <strong>{all.data?.total ?? '—'}</strong>
+            <span>submitted projects</span>
+          </div>
         </div>
       </div>
 

@@ -105,7 +105,7 @@ export function App() {
           <p>
             JuryStack is a modern, open-source, self-hostable hackathon
             submission and judging platform that manages the entire event
-            lifecycle—from teams and submissions to judging, normalization,
+            lifecycle, from teams and submissions to judging, normalization,
             results, and export.
           </p>
         </div>
