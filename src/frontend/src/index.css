@@ -9,36 +9,36 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #172033;
-  background: #f7f9fc;
+  color: #0f172a;
+  background: #f5f7fc;
   font-synthesis: none;
-  --bg: #f7f9fc;
+  --bg: #f5f7fc;
   --surface: #ffffff;
   --surface-subtle: #f1f5f9;
   --surface-raised: #ffffff;
-  --text: #172033;
-  --text-muted: #64748b;
-  --text-soft: #94a3b8;
-  --border: #dfe5ee;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-soft: #64748b;
+  --border: #e2e8f0;
   --border-strong: #cbd5e1;
   --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-soft: #eef2ff;
-  --primary-text: #4f46e5;
+  --primary-hover: #3730a3;
+  --primary-soft: #e5e9ff;
+  --primary-text: #4338ca;
   --danger: #dc2626;
   --danger-soft: #fef2f2;
-  --success: #3f7d5c;
-  --success-soft: #edf7f0;
+  --success: #166534;
+  --success-soft: #dcfce7;
   --warning: #9a6b20;
   --warning-soft: #faf4e7;
-  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.05);
-  --shadow-md: 0 10px 30px rgb(15 23 42 / 0.08);
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06), 0 8px 24px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 16px 40px rgb(15 23 42 / 0.1);
 }
 
 :root[data-theme='dark'] {
   color: #e7edf6;
-  background: #111827;
-  --bg: #111827;
+  background: #0b1226;
+  --bg: #0b1226;
   --surface: #1f2937;
   --surface-subtle: #293444;
   --surface-raised: #242f3e;
@@ -76,8 +76,8 @@ body {
   color: var(--text);
   line-height: 1.5;
   transition:
-    background-color 160ms ease,
-    color 160ms ease;
+    background-color 230ms ease,
+    color 230ms ease;
 }
 
 button,
