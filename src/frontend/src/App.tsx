@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
 
 import { useAuth } from './features/auth/context'
@@ -60,7 +60,7 @@ function NavigationLinks({
 export function App() {
   const { user } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const items = navigationFor(user?.role)
+  const items = useMemo(() => navigationFor(user?.role), [user?.role])
   return (
     <div className="app-shell">
       <header className="site-header">

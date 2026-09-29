@@ -1,5 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import { Link, useSearchParams } from 'react-router'
 
 import { gallery, type Project } from './api'
@@ -97,10 +105,61 @@ function storedViewMode(): ViewMode {
   }
 }
 
+const GallerySearch = memo(function GallerySearch({
+  value,
+  inputRef,
+  onSearch,
+}: {
+  value: string
+  inputRef: RefObject<HTMLInputElement | null>
+  onSearch: (value: string) => void
+}) {
+  const [draft, setDraft] = useState(value)
+
+  useEffect(() => setDraft(value), [value])
+  useEffect(() => {
+    if (draft === value) return
+    const timer = window.setTimeout(() => onSearch(draft), 150)
+    return () => window.clearTimeout(timer)
+  }, [draft, onSearch, value])
+
+  const clear = useCallback(() => {
+    setDraft('')
+    onSearch('')
+    inputRef.current?.focus()
+  }, [inputRef, onSearch])
+
+  return (
+    <label className="search-field">
+      <span className="field-label">Search projects</span>
+      <span className="search-control">
+        <SearchIcon />
+        <input
+          className="input"
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Search projects or teams"
+          ref={inputRef}
+          type="search"
+          value={draft}
+        />
+        {draft ? (
+          <button aria-label="Clear project search" className="search-clear" onClick={clear} type="button">×</button>
+        ) : (
+          <kbd aria-hidden="true">/</kbd>
+        )}
+      </span>
+    </label>
+  )
+})
+
 export function GalleryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('q') ?? ''
-  const tracks = Array.from(new Set(searchParams.getAll('track')))
+  const trackParamKey = searchParams.getAll('track').join('\u0000')
+  const tracks = useMemo(
+    () => Array.from(new Set(trackParamKey ? trackParamKey.split('\u0000') : [])),
+    [trackParamKey],
+  )
   const requestedSort = searchParams.get('sort') as SortMode | null
   const sortBy = requestedSort && sortModes.has(requestedSort) ? requestedSort : 'newest'
   const viewParam = searchParams.get('view')
@@ -108,11 +167,13 @@ export function GalleryPage() {
   const [savedView] = useState(storedViewMode)
   const viewMode: ViewMode = viewParam === 'list' ? 'list' : viewParam === 'grid' ? 'grid' : savedView
   const searchRef = useRef<HTMLInputElement>(null)
-  const scrollTopRef = useRef<HTMLButtonElement>(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const [openPeekId, setOpenPeekId] = useState<string | null>(null)
-  const peekToggleRefs = useRef(new Map<string, HTMLButtonElement>())
-  const all = useQuery({ queryKey: ['gallery', 'all'], queryFn: loadAllProjects })
+  const all = useQuery({
+    queryKey: ['gallery', 'all'],
+    queryFn: loadAllProjects,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
   const projects = all.data?.items ?? []
 
   const updateUrl = useCallback(
@@ -161,31 +222,30 @@ export function GalleryPage() {
   }, [])
 
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 420)
+    let frame = 0
+    const onScroll = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => {
+        setShowScrollTop(window.scrollY > 420)
+        frame = 0
+      })
+    }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
   }, [])
 
-  useEffect(() => {
-    if (!openPeekId) return
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      event.preventDefault()
-      const toggle = peekToggleRefs.current.get(openPeekId)
-      setOpenPeekId(null)
-      requestAnimationFrame(() => toggle?.focus())
+  const trackList = useMemo(() => {
+    const trackMap = new Map<string, { name: string; count: number }>()
+    for (const project of projects) {
+      const current = trackMap.get(project.track_id)
+      trackMap.set(project.track_id, { name: project.track_name, count: (current?.count ?? 0) + 1 })
     }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [openPeekId])
-
-  const trackMap = new Map<string, { name: string; count: number }>()
-  for (const project of projects) {
-    const current = trackMap.get(project.track_id)
-    trackMap.set(project.track_id, { name: project.track_name, count: (current?.count ?? 0) + 1 })
-  }
-  const trackList = Array.from(trackMap)
+    return Array.from(trackMap)
+  }, [projects])
   const filteredProjects = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
     return projects.filter((project) => {
@@ -211,14 +271,15 @@ export function GalleryPage() {
   }, [filteredProjects, sortBy])
 
   const hasActiveFilters = Boolean(search || tracks.length)
-  const clearFilters = () => updateUrl({ search: '', tracks: [] })
-  const toggleTrack = (trackId: string) => {
+  const updateSearch = useCallback((value: string) => updateUrl({ search: value }, true), [updateUrl])
+  const clearFilters = useCallback(() => updateUrl({ search: '', tracks: [] }), [updateUrl])
+  const toggleTrack = useCallback((trackId: string) => {
     const nextTracks = tracks.includes(trackId)
       ? tracks.filter((selected) => selected !== trackId)
       : [...tracks, trackId]
     updateUrl({ tracks: nextTracks })
-  }
-  const toggleView = (view: ViewMode) => updateUrl({ view })
+  }, [tracks, updateUrl])
+  const toggleView = useCallback((view: ViewMode) => updateUrl({ view }), [updateUrl])
 
   return (
     <section className="gallery-page">
@@ -239,25 +300,7 @@ export function GalleryPage() {
       </div>
 
       <div className="filter-bar panel">
-        <label className="search-field">
-          <span className="field-label">Search projects</span>
-          <span className="search-control">
-            <SearchIcon />
-            <input
-              className="input"
-              onChange={(event) => updateUrl({ search: event.target.value }, true)}
-              placeholder="Search projects or teams"
-              ref={searchRef}
-              type="search"
-              value={search}
-            />
-            {search ? (
-              <button aria-label="Clear project search" className="search-clear" onClick={() => { updateUrl({ search: '' }, true); searchRef.current?.focus() }} type="button">×</button>
-            ) : (
-              <kbd aria-hidden="true">/</kbd>
-            )}
-          </span>
-        </label>
+        <GallerySearch inputRef={searchRef} onSearch={updateSearch} value={search} />
         <div className="track-filter" aria-label="Filter by track" role="group">
           <span className="field-label">Track</span>
           <div className="track-pills">
@@ -309,14 +352,8 @@ export function GalleryPage() {
           {sortedProjects.map((project) => (
             <ProjectCard
               key={project.id}
-              isOpen={openPeekId === project.id}
-              onTogglePeek={() => setOpenPeekId((current) => current === project.id ? null : project.id)}
               project={project}
               query={search}
-              registerToggle={(element) => {
-                if (element) peekToggleRefs.current.set(project.id, element)
-                else peekToggleRefs.current.delete(project.id)
-              }}
             />
           ))}
         </ul>
@@ -326,7 +363,6 @@ export function GalleryPage() {
           aria-label="Scroll to top"
           className="scroll-top-button"
           onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}
-          ref={scrollTopRef}
           type="button"
         >
           ↑
@@ -336,21 +372,33 @@ export function GalleryPage() {
   )
 }
 
-function ProjectCard({
+const ProjectCard = memo(function ProjectCard({
   project,
   query,
-  isOpen,
-  onTogglePeek,
-  registerToggle,
 }: {
   project: Project
   query: string
-  isOpen: boolean
-  onTogglePeek: () => void
-  registerToggle: (element: HTMLButtonElement | null) => void
 }) {
   const panelId = `quick-peek-${project.id}`
   const toggleRef = useRef<HTMLButtonElement>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const togglePeek = useCallback(() => setIsOpen((open) => !open), [])
+  const closePeek = useCallback(() => {
+    setIsOpen(false)
+    requestAnimationFrame(() => toggleRef.current?.focus())
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      closePeek()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [closePeek, isOpen])
+
   return (
     <li className="project-card">
       <span className="badge badge-blue"><HighlightedText text={project.track_name} query={query} /></span>
@@ -364,11 +412,8 @@ function ProjectCard({
           aria-controls={panelId}
           aria-expanded={isOpen}
           className="project-peek-toggle"
-          onClick={onTogglePeek}
-          ref={(element) => {
-            toggleRef.current = element
-            registerToggle(element)
-          }}
+          onClick={togglePeek}
+          ref={toggleRef}
           type="button"
         >
           <span>Quick peek</span>
@@ -376,7 +421,7 @@ function ProjectCard({
         </button>
         <div aria-hidden={!isOpen} className="project-peek-clip" id={panelId}>
           <div className="project-peek-content">
-      <button aria-label="Close quick peek" className="peek-close" onClick={() => { onTogglePeek(); requestAnimationFrame(() => toggleRef.current?.focus()) }} type="button">×</button>
+      <button aria-label="Close quick peek" className="peek-close" onClick={closePeek} type="button">×</button>
             <p>{project.summary}</p>
             <div className="peek-details-row">
               <span className="peek-submitted"><CalendarIcon /> Submitted {project.submitted_at ? new Date(project.submitted_at).toLocaleDateString() : 'date unavailable'}</span>
@@ -392,4 +437,4 @@ function ProjectCard({
       <Link className="card-action" to={`/projects/${project.id}`}>View project <span aria-hidden="true">→</span></Link>
     </li>
   )
-}
+})
