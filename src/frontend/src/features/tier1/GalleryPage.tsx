@@ -284,12 +284,12 @@ export function GalleryPage() {
   return (
     <section className="gallery-page">
       <div className="gallery-hero">
-        <div>
+        <div className="gallery-hero-content">
           <p className="eyebrow">Public project gallery</p>
           <h1>Projects built to be seen</h1>
           <p>
             JuryStack is a modern, open-source, self-hostable hackathon platform
-            for the entire event lifecycle—from teams and submissions to
+            for the entire event lifecycle, from teams and submissions through
             judging, normalization, results, and export.
           </p>
         </div>
@@ -300,28 +300,9 @@ export function GalleryPage() {
       </div>
 
       <div className="filter-bar panel">
-        <GallerySearch inputRef={searchRef} onSearch={updateSearch} value={search} />
-        <div className="track-filter" aria-label="Filter by track" role="group">
-          <span className="field-label">Track</span>
-          <div className="track-pills">
-            <button aria-pressed={tracks.length === 0} className="track-pill" onClick={() => updateUrl({ tracks: [] })} type="button">
-              All <span>{all.data?.total ?? 0}</span>
-            </button>
-            {trackList.map(([id, track]) => (
-              <button aria-pressed={tracks.includes(id)} className="track-pill" key={id} onClick={() => toggleTrack(id)} type="button">
-                {track.name} <span>{track.count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        {hasActiveFilters && <button className="clear-filters filter-clear-button" onClick={clearFilters} type="button">Clear filters</button>}
-      </div>
-
-      <div className="gallery-results">
-        <div className="results-heading">
-          <h2>{hasActiveFilters ? 'Filtered projects' : 'All projects'}</h2>
-          <div className="results-tools">
-            {all.data && <span>{filteredProjects.length} results</span>}
+        <div className="gallery-controls-row">
+          <GallerySearch inputRef={searchRef} onSearch={updateSearch} value={search} />
+          <div className="gallery-view-controls">
             <label className="sort-control">
               <span className="sr-only">Sort projects</span>
               <select aria-label="Sort projects" onChange={(event) => updateUrl({ sort: event.target.value as SortMode })} value={sortBy}>
@@ -336,6 +317,31 @@ export function GalleryPage() {
               <button aria-label="Grid view" aria-pressed={viewMode === 'grid'} onClick={() => toggleView('grid')} type="button"><span aria-hidden="true">▦</span></button>
               <button aria-label="List view" aria-pressed={viewMode === 'list'} onClick={() => toggleView('list')} type="button"><span aria-hidden="true">☷</span></button>
             </div>
+          </div>
+        </div>
+        <div className="track-filter" aria-label="Filter by track" role="group">
+          <span className="field-label">Track</span>
+          <div className="track-pills-viewport">
+            <div className="track-pills">
+              <button aria-pressed={tracks.length === 0} className="track-pill" onClick={() => updateUrl({ tracks: [] })} type="button">
+                All <span>{all.data?.total ?? 0}</span>
+              </button>
+              {trackList.map(([id, track]) => (
+                <button aria-pressed={tracks.includes(id)} className="track-pill" key={id} onClick={() => toggleTrack(id)} type="button">
+                  {track.name} <span>{track.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        {hasActiveFilters && <button className="clear-filters filter-clear-button" onClick={clearFilters} type="button">Clear filters</button>}
+      </div>
+
+      <div className="gallery-results">
+        <div className="results-heading">
+          <h2>{hasActiveFilters ? 'Filtered projects' : 'All projects'}</h2>
+          <div className="results-tools">
+            {all.data && <span>{filteredProjects.length} results</span>}
           </div>
         </div>
 
