@@ -458,6 +458,7 @@ class BallotEntry(Base):
     position: Mapped[int] = mapped_column(Integer)
 
     ballot: Mapped[Ballot] = relationship(back_populates="entries")
+    project: Mapped[Project] = relationship()
 
 
 class ProjectVote(Base):

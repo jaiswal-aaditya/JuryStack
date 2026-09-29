@@ -14,6 +14,7 @@ import { OrganizerEventsPage } from '../features/tier1/OrganizerEventsPage'
 import { ParticipantPage } from '../features/tier1/ParticipantPage'
 import { ProjectDetailPage } from '../features/tier1/ProjectDetailPage'
 import { ProjectEditorPage } from '../features/tier1/ProjectEditorPage'
+import { VotingPage } from '../features/voting/VotingPage'
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
         element: <JudgeScorecardPage />,
       },
       { path: 'judge-invitations/:token', element: <JudgeInvitationPage /> },
+      { path: 'vote/:token', element: <VotingPage /> },
     ],
   },
 ])
