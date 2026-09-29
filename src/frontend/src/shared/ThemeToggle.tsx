@@ -1,11 +1,10 @@
-import { useTheme, type ThemePreference } from './theme-context'
+import { useTheme } from './theme-context'
 
 const options: Array<{
-  value: ThemePreference
+  value: 'light' | 'dark'
   label: string
   icon: string
 }> = [
-  { value: 'system', label: 'System', icon: '◩' },
   { value: 'light', label: 'Light', icon: '☀' },
   { value: 'dark', label: 'Dark', icon: '◐' },
 ]
@@ -48,7 +47,10 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       <div className="theme-options" aria-label="Color theme">
         {options.map((option) => (
           <button
-            aria-pressed={preference === option.value}
+            aria-pressed={
+              preference === option.value ||
+              (preference === 'system' && dark === (option.value === 'dark'))
+            }
             className="theme-option"
             key={option.value}
             onClick={() => setPreference(option.value)}
