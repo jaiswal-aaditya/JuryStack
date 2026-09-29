@@ -292,10 +292,10 @@ export function GalleryPage() {
             for the entire event lifecycle, from teams and submissions through
             judging, normalization, results, and export.
           </p>
-          <div className="gallery-stat">
-            <strong>{all.data?.total ?? '—'}</strong>
-            <span>submitted projects</span>
-          </div>
+        </div>
+        <div className="gallery-stat">
+          <strong>{all.data?.total ?? '—'}</strong>
+          <span>submitted projects</span>
         </div>
       </div>
 
