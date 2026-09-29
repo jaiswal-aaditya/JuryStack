@@ -1,7 +1,6 @@
 # JuryStack
 
-JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD
-2026. Tier 1 is implemented end to end: organizers configure events,
+JuryStack is a self-hosted hackathon submission and judging portal for DOGFOOD 2026. Tier 1 is implemented end to end: organizers configure events,
 participants form teams and submit projects before a server-enforced UTC
 deadline, and visitors browse a searchable, filterable public gallery. Tier 2 rubric, invitation, assignment, private-scorecard, organizer operations, CSV
 export, audit-history, and cross-judge normalization slices are implemented and
@@ -20,30 +19,32 @@ No runtime cloud service, hosted account, or external API is required.
 ## Local runtime
 
 Copy `.env.example` to `.env` only when overriding the safe local defaults.
-Build and start the complete portal, recreating any container that still points
-at an older local image, with:
-
-```bash
-docker compose up --build --force-recreate
-```
-
-The shorter official command remains sufficient when the source tree has not
-changed:
+From the repository root, use the official single startup command:
 
 ```bash
 docker compose up
 ```
 
-If a previous interrupted build left stale Docker cache, perform one guaranteed
-clean image rebuild:
+This builds any missing application images, starts all three services, applies
+database migrations, and seeds the fixture data. No additional flag is needed
+for a fresh checkout or normal restart.
+
+After changing application source or a Dockerfile, rebuild the affected images
+before starting:
+
+```bash
+docker compose up --build
+```
+
+If an interrupted build left stale Docker cache, force a clean image build once, then start normally:
 
 ```bash
 docker compose build --no-cache
-docker compose up --force-recreate
+docker compose up
 ```
 
 The Nginx application route sends `Cache-Control: no-store`, so a normal browser
-refresh after the recreated `web` container starts loads the current frontend
+refresh after the updated `web` container starts loads the current frontend
 bundle rather than an older cached shell.
 
 The API container waits for PostgreSQL readiness, applies Alembic migrations,
