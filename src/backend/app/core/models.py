@@ -100,6 +100,12 @@ class Event(Base):
         back_populates="event"
     )
     audit_events: Mapped[list[AuditEvent]] = relationship(back_populates="event")
+    voting_window: Mapped[VotingWindow | None] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
+    )
+    voter_invitations: Mapped[list[VoterInvitation]] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
+    )
 
 
 class Track(Base):
@@ -382,6 +388,91 @@ class CriterionScore(Base):
 
     scorecard: Mapped[Scorecard] = relationship(back_populates="criterion_scores")
     criterion: Mapped[RubricCriterion] = relationship(back_populates="scores")
+
+
+class VotingWindow(Base):
+    __tablename__ = "voting_windows"
+    __table_args__ = (
+        UniqueConstraint("event_id"),
+        CheckConstraint("opens_at < closes_at", name="ck_voting_window_range"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    opens_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    closes_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    event: Mapped[Event] = relationship(back_populates="voting_window")
+
+
+class VoterInvitation(Base):
+    __tablename__ = "voter_invitations"
+    __table_args__ = (Index("ix_voter_invitations_email", "event_id", "email"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    redeemed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    event: Mapped[Event] = relationship(back_populates="voter_invitations")
+    ballot: Mapped[Ballot | None] = relationship(back_populates="voter_invitation")
+
+
+class Ballot(Base):
+    __tablename__ = "ballots"
+    __table_args__ = (UniqueConstraint("voter_invitation_id"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    voter_invitation_id: Mapped[str] = mapped_column(
+        ForeignKey("voter_invitations.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    voter_invitation: Mapped[VoterInvitation] = relationship(back_populates="ballot")
+    entries: Mapped[list[BallotEntry]] = relationship(
+        back_populates="ballot", cascade="all, delete-orphan"
+    )
+    vote: Mapped[ProjectVote | None] = relationship(back_populates="ballot")
+
+
+class BallotEntry(Base):
+    """Persists the randomized project order shown to one ballot."""
+    __tablename__ = "ballot_entries"
+    __table_args__ = (
+        UniqueConstraint("ballot_id", "project_id"),
+        UniqueConstraint("ballot_id", "position"),
+    )
+
+    ballot_id: Mapped[str] = mapped_column(
+        ForeignKey("ballots.id", ondelete="CASCADE"), primary_key=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(Integer)
+
+    ballot: Mapped[Ballot] = relationship(back_populates="entries")
+    project: Mapped[Project] = relationship()
+
+
+class ProjectVote(Base):
+    __tablename__ = "project_votes"
+    __table_args__ = (UniqueConstraint("ballot_id"),)  # one vote per ballot, DB-enforced
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    ballot_id: Mapped[str] = mapped_column(ForeignKey("ballots.id", ondelete="CASCADE"))
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    cast_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    ballot: Mapped[Ballot] = relationship(back_populates="vote")
 
 
 class AuditEvent(Base):
