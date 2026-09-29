@@ -67,24 +67,6 @@ function GallerySkeleton() {
   )
 }
 
-function HighlightedText({ text, query }: { text: string; query: string }) {
-  const term = query.trim()
-  if (!term) return <>{text}</>
-  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const parts = text.split(new RegExp(`(${escaped})`, 'ig'))
-  return (
-    <>
-      {parts.map((part, index) =>
-        part.toLocaleLowerCase() === term.toLocaleLowerCase() ? (
-          <mark key={`${part}-${index}`}>{part}</mark>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  )
-}
-
 async function loadAllProjects() {
   const pageSize = 100
   const first = await gallery('', '', pageSize, 0)
@@ -359,7 +341,6 @@ export function GalleryPage() {
             <ProjectCard
               key={project.id}
               project={project}
-              query={search}
             />
           ))}
         </ul>
@@ -380,10 +361,8 @@ export function GalleryPage() {
 
 const ProjectCard = memo(function ProjectCard({
   project,
-  query,
 }: {
   project: Project
-  query: string
 }) {
   const panelId = `quick-peek-${project.id}`
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -407,12 +386,12 @@ const ProjectCard = memo(function ProjectCard({
 
   return (
     <li className="project-card">
-      <span className="badge badge-blue"><HighlightedText text={project.track_name} query={query} /></span>
+      <span className="badge badge-blue">{project.track_name}</span>
       <h3>
-        <Link className="project-link" to={`/projects/${project.id}`}><HighlightedText text={project.title} query={query} /></Link>
+        <Link className="project-link" to={`/projects/${project.id}`}>{project.title}</Link>
       </h3>
-      <p className="project-team">By <HighlightedText text={project.team_name} query={query} /></p>
-      <p className="project-summary"><HighlightedText text={project.summary} query={query} /></p>
+      <p className="project-team">By {project.team_name}</p>
+      <p className="project-summary">{project.summary}</p>
       <div className={`project-peek ${isOpen ? 'is-open' : ''}`}>
         <button
           aria-controls={panelId}
