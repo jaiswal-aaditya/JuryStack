@@ -2506,8 +2506,6 @@ body::after {
 .project-grid-list .project-card > .card-action { grid-column: 3; grid-row: 5; align-self: end; }
 .gallery-empty-state { gap: 1rem; }
 .gallery-empty-state .button { margin-top: 0.25rem; }
-.gallery-page mark { border-radius: 0.2em; background: var(--accent-soft); color: var(--accent-text); padding: 0 0.08em; }
-:root[data-theme='dark'] .gallery-page mark { background: var(--accent-soft); color: var(--accent-soft); }
 .scroll-top-button {
   position: fixed;
   z-index: 50;
@@ -2863,8 +2861,6 @@ a:focus-visible {
 :root[data-theme='dark'] .track-pill[aria-pressed='true'] { background-color: var(--primary-button); border-color: var(--primary-button); color: var(--inverse-text); }
 :root[data-theme='light'] .search-control input[type='search'],
 :root[data-theme='light'] .sort-control select { background-color: var(--surface); }
-:root[data-theme='light'] .gallery-page mark { background: var(--accent-soft); color: var(--accent-text); }
-:root[data-theme='dark'] .gallery-page mark { background: color-mix(in srgb, var(--accent) 24%, var(--surface)); color: var(--accent-soft); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
