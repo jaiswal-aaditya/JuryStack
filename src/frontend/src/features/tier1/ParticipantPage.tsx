@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 
 import {
@@ -30,6 +30,16 @@ export function ParticipantPage() {
   const [inviteUrl, setInviteUrl] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [message, setMessage] = useState('')
+  const teamCreatedTimer = useRef<number | null>(null)
+
+  useEffect(
+    () => () => {
+      if (teamCreatedTimer.current !== null) {
+        window.clearTimeout(teamCreatedTimer.current)
+      }
+    },
+    [],
+  )
 
   const refreshTeams = () =>
     queryClient.invalidateQueries({ queryKey: ['teams'] })
@@ -39,6 +49,13 @@ export function ParticipantPage() {
     onSuccess: async () => {
       setTeamName('')
       setMessage('Team created.')
+      if (teamCreatedTimer.current !== null) {
+        window.clearTimeout(teamCreatedTimer.current)
+      }
+      teamCreatedTimer.current = window.setTimeout(() => {
+        setMessage((current) => (current === 'Team created.' ? '' : current))
+        teamCreatedTimer.current = null
+      }, 1800)
       await refreshTeams()
     },
   })

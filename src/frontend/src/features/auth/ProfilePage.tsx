@@ -56,7 +56,7 @@ export function ProfilePage() {
         <div>
           <h2>Appearance</h2>
           <p className="helper-text">
-            Use your system setting or choose a theme for this browser.
+            Choose a light or dark theme for this browser.
           </p>
         </div>
         <ThemeToggle />
